@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="bn" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>কুরআন মাজীদ</title>
+<link rel="stylesheet" href="style.v3.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>القرآن الكريم</h1>
+    <p class="subtitle">কুরআন মাজীদ</p>
+
+    <div class="font-control">
+      <button id="fontDec" class="font-btn">A−</button>
+      <span id="fontSizeLabel" class="font-label">36</span>
+      <button id="fontInc" class="font-btn">A+</button>
+    </div>
+  </header>
+  <main>
+    <div id="surahList"></div>
+  </main>
+  <div id="surahView"></div>
+  <div id="audioControls" class="audio-controls">
+    <button class="play-btn">▶</button>
+    <div class="progress-wrap">
+      <div class="progress-bar"></div>
+    </div>
+    <span class="time">0:00</span>
+    <span class="duration">0:00</span>
+    <button onclick="stopAudio()" style="background:#c62828">⏹</button>
+  </div>
+</div>
+<script src="app.v3.js"></script>
+</body>
+</html>
