@@ -29,14 +29,22 @@
     <div id="surahList"></div>
   </main>
   <div id="surahView"></div>
-  <div id="audioControls" class="audio-controls">
-    <button class="play-btn">▶</button>
-    <div class="progress-wrap">
-      <div class="progress-bar"></div>
+  <div id="player" class="audio-player">
+    <div class="player-info">
+      <div class="player-surah-name" id="playerSurahName">কুরআন মাজীদ</div>
+      <div class="player-reciter" id="playerReciter">মিশারি রশিদ আল-আফাসি</div>
     </div>
-    <span class="time">0:00</span>
-    <span class="duration">0:00</span>
-    <button onclick="stopAudio()" style="background:#c62828">⏹</button>
+    <div class="player-controls">
+      <button class="player-btn" id="btnPrev" onclick="prevSurah()" title="Previous">⏮</button>
+      <button class="player-btn player-play-btn" id="btnPlay" onclick="togglePlayPause()">▶</button>
+      <button class="player-btn" id="btnNext" onclick="nextSurah()" title="Next">⏭</button>
+    </div>
+    <div class="player-progress-wrap">
+      <div class="player-progress-bar" id="playerProgress"></div>
+    </div>
+    <span class="player-time" id="playerTime">0:00</span>
+    <span class="player-duration" id="playerDuration">0:00</span>
+    <button class="player-btn player-close" onclick="stopAudio()" title="Close">✕</button>
   </div>
 </div>
 <script src="app.v3.js"></script>

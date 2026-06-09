@@ -130,6 +130,8 @@ let rukuRelation = null;
 let currentSurah = null;
 let currentAyahs = null;
 let activeAudio = null;
+let currentSurahAudio = null;
+let isPlaying = false;
 let reciter = localStorage.getItem('reciter') || 'Mishari-Rashid';
 
 const $ = s => document.querySelector(s);
@@ -189,64 +191,72 @@ function getRukuCount(surah) {
 }
 
 /* ====================== AUDIO ====================== */
-function playAyahAudio(surah, ayah) {
-  const ruku = getRukuForAyah(surah, ayah);
-  const surahPadded = String(surah).padStart(3,'0');
-  const url = `https://q1.pakdata.com/Audio/Script/${reciter}/${surahPadded}-${ruku}.mp3`;
+function playSurah(surahNum) {
+  const surahPadded = String(surahNum).padStart(3,'0');
+  const url = `https://q1.pakdata.com/Audio/Script/${reciter}/${surahPadded}-01.mp3`;
 
   if (activeAudio) {
     activeAudio.pause();
     activeAudio = null;
   }
 
+  currentSurahAudio = surahNum;
   const audio = new Audio(url);
   audio.preload = 'auto';
   activeAudio = audio;
+  isPlaying = true;
 
-  const controls = $('#audioControls');
-  controls.classList.add('active');
-  const playBtn = controls.querySelector('.play-btn');
-  const progressBar = controls.querySelector('.progress-bar');
-  const timeLabel = controls.querySelector('.time');
+  const s = SURAH_NAMES[surahNum - 1];
+  $('#playerSurahName').textContent = s.bn;
+  $('#playerReciter').textContent = 'মিশারি রশিদ আল-আফাসি';
+  $('#player').classList.add('active');
+  $('#btnPlay').textContent = '\u23F8';
 
-  playBtn.textContent = '\u23F8';
-  playBtn.dataset.playing = 'true';
+  const progressBar = $('#playerProgress');
+  const timeLabel = $('#playerTime');
+  const durationLabel = $('#playerDuration');
 
   audio.onloadedmetadata = () => {
-    controls.querySelector('.duration').textContent = formatTime(audio.duration);
+    durationLabel.textContent = formatTime(audio.duration);
   };
 
   audio.ontimeupdate = () => {
     if (audio.duration) {
-      progressBar.style.width = (audio.currentTime / audio.duration * 100)+'%';
+      progressBar.style.width = (audio.currentTime / audio.duration * 100) + '%';
       timeLabel.textContent = formatTime(audio.currentTime);
     }
   };
 
   audio.onended = () => {
-    playBtn.textContent = '\u25B6';
-    playBtn.dataset.playing = 'false';
+    $('#btnPlay').textContent = '\u25B6';
+    isPlaying = false;
     progressBar.style.width = '0%';
     timeLabel.textContent = '0:00';
   };
 
   audio.play().catch(e => {
     console.warn('Audio play failed:', e);
-    playBtn.textContent = '\u25B6';
-    playBtn.dataset.playing = 'false';
+    $('#btnPlay').textContent = '\u25B6';
+    isPlaying = false;
   });
 
-  playBtn.onclick = () => {
-    if (audio.paused) {
-      audio.play();
-      playBtn.textContent = '\u23F8';
-      playBtn.dataset.playing = 'true';
-    } else {
-      audio.pause();
-      playBtn.textContent = '\u25B6';
-      playBtn.dataset.playing = 'false';
-    }
-  };
+  // Highlight active surah in list
+  document.querySelectorAll('.surah-card').forEach(el => {
+    el.classList.toggle('playing', Number(el.dataset.surah) === surahNum);
+  });
+}
+
+function togglePlayPause() {
+  if (!activeAudio) return;
+  if (activeAudio.paused) {
+    activeAudio.play();
+    $('#btnPlay').textContent = '\u23F8';
+    isPlaying = true;
+  } else {
+    activeAudio.pause();
+    $('#btnPlay').textContent = '\u25B6';
+    isPlaying = false;
+  }
 }
 
 function stopAudio() {
@@ -254,8 +264,24 @@ function stopAudio() {
     activeAudio.pause();
     activeAudio = null;
   }
-  const controls = $('#audioControls');
-  controls.classList.remove('active');
+  isPlaying = false;
+  currentSurahAudio = null;
+  $('#player').classList.remove('active');
+  $('#playerProgress').style.width = '0%';
+  $('#playerTime').textContent = '0:00';
+  document.querySelectorAll('.surah-card').forEach(el => el.classList.remove('playing'));
+}
+
+function prevSurah() {
+  if (!currentSurahAudio) return;
+  const prev = currentSurahAudio > 1 ? currentSurahAudio - 1 : 114;
+  playSurah(prev);
+}
+
+function nextSurah() {
+  if (!currentSurahAudio) return;
+  const next = currentSurahAudio < 114 ? currentSurahAudio + 1 : 1;
+  playSurah(next);
 }
 
 function formatTime(s) {
@@ -275,6 +301,7 @@ function renderSurahList() {
       <div class="surah-bn">${s.bn}</div>
       <div class="surah-en">${s.en}</div>
       <div class="surah-aya-count">${s.ayas} আয়াত</div>
+      <button class="surah-play-btn" onclick="event.stopPropagation(); playSurah(${i+1})">▶</button>
     </div>
   `).join('');
 
@@ -326,13 +353,12 @@ async function openSurah(n) {
   arData.ayahs.forEach((a, i) => {
     const bnAyah = bnData && bnData.ayahs[i] ? bnData.ayahs[i].text : '';
     html += `
-      <div class="aya-wrapper" data-surah="${n}" data-ayah="${a.numberInSurah}" onclick="playAyahAudio(${n}, ${a.numberInSurah})">
+      <div class="aya-wrapper" data-surah="${n}" data-ayah="${a.numberInSurah}">
         <div class="aya-row">
           <div class="aya-ar-side">
             <span class="ayah-text">${a.text}</span>
             <span class="ayah-num-circle">${a.numberInSurah}</span>
           </div>
-          <button class="aya-play-btn" title="Play this ayah">▶</button>
         </div>
         ${bnAyah ? `<div class="aya-bn-line">${bnAyah}</div>` : ''}
       </div>
@@ -367,7 +393,10 @@ async function init() {
 }
 
 // Expose for onclick
-window.playAyahAudio = playAyahAudio;
+window.playSurah = playSurah;
+window.togglePlayPause = togglePlayPause;
+window.prevSurah = prevSurah;
+window.nextSurah = nextSurah;
 window.closeSurah = closeSurah;
 window.stopAudio = stopAudio;
 

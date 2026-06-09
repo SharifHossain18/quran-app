@@ -12,7 +12,7 @@ body {
   direction: ltr;
   -webkit-font-smoothing: antialiased;
 }
-#app { max-width: 800px; margin: 0 auto; padding: 0; }
+#app { max-width: 800px; margin: 0 auto; padding: 0 0 90px; }
 header {
   background: linear-gradient(180deg, #9dc1a7 0%, #b3d0b8 100%);
   text-align: center;
@@ -83,14 +83,50 @@ main { padding: 12px; }
 }
 .surah-card {
   background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 14px 10px;
-  text-align: center;
+  border: 1px solid #e8eee2;
+  border-radius: 12px;
+  padding: 12px 14px 40px;
   cursor: pointer;
-  transition: 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 }
+.surah-card:hover {
+  border-color: #b8d4b2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.surah-card.playing {
+  border-color: #49a35b;
+  box-shadow: 0 0 0 2px rgba(73,163,91,0.15);
+}
+.surah-num {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 11px;
+  color: #b8d4b2;
+  font-weight: 600;
+}
+.surah-play-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: #49a35b;
+  border: none;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0 0 0 2px;
+}
+.surah-play-btn:hover { background: #3d8c4d; transform: scale(1.1); }
+.surah-card.playing .surah-play-btn { background: #fff; color: #49a35b; }
 .surah-card:hover, .surah-card:active {
   background: #e6f0da;
   border-color: #9dc1a7;
@@ -177,20 +213,13 @@ main { padding: 12px; }
   unicode-bidi: embed;
 }
 .aya-wrapper {
-  cursor: pointer;
-  transition: background 0.15s;
-  border-radius: 8px;
   padding: 4px 8px;
-  position: relative;
   margin: 0;
 }
-.aya-wrapper:hover { background: rgba(0,0,0,0.03); }
-.aya-wrapper:active { background: rgba(0,0,0,0.06); }
 .aya-wrapper + .aya-wrapper {
   padding-top: 20px;
   border-top: 1px solid #dce5d4;
 }
-.aya-row { display: flex; align-items: flex-start; gap: 8px; }
 .aya-ar-side {
   font-family: 'PDMS_Saleem_QuranFont', 'Traditional Arabic', 'Scheherazade New', serif;
   font-size: var(--arabic-font-size, 36px);
@@ -202,23 +231,6 @@ main { padding: 12px; }
   unicode-bidi: embed;
   flex: 1;
 }
-.aya-play-btn {
-  background: #9dc1a7;
-  border: none;
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 4px;
-  transition: all 0.15s;
-}
-.aya-play-btn:hover { background: #7da88a; transform: scale(1.1); }
 .ayah-num-circle {
   display: inline-flex;
   align-items: center;
@@ -245,43 +257,89 @@ main { padding: 12px; }
   padding: 0 0 0 2px;
   margin-top: 8px;
 }
-.audio-controls {
-  position: sticky;
+/* Audio Player Bar */
+.audio-player {
+  position: fixed;
   bottom: 0;
-  background: #f4faee;
-  border-top: 1px solid #dce5d4;
-  padding: 8px;
+  left: 0;
+  right: 0;
+  background: #49a35b;
+  padding: 10px 16px 14px;
   display: none;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(73,163,91,0.3);
+}
+.audio-player.active { display: flex; flex-wrap: wrap; }
+.player-info {
+  flex: 1;
+  min-width: 120px;
+}
+.player-surah-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.player-reciter {
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 1px;
+}
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.player-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
 }
-.audio-controls.active { display: flex; }
-.audio-controls button {
-  background: #9dc1a7;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+.player-btn:hover { background: rgba(255,255,255,0.35); }
+.player-play-btn {
+  width: 42px;
+  height: 42px;
   font-size: 16px;
-  cursor: pointer;
+  background: rgba(255,255,255,0.3);
 }
-.audio-controls .progress-wrap {
-  flex: 1;
-  max-width: 300px;
-  height: 4px;
-  background: #dce5d4;
+.player-play-btn:hover { background: rgba(255,255,255,0.5); }
+.player-close {
+  background: rgba(255,255,255,0.15);
+  font-size: 11px;
+  width: 28px;
+  height: 28px;
+}
+.player-progress-wrap {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.25);
   border-radius: 2px;
   overflow: hidden;
+  order: 1;
+  flex-basis: 100%;
 }
-.audio-controls .progress-bar {
+.player-progress-bar {
   height: 100%;
-  background: #9dc1a7;
+  background: #fff;
   width: 0%;
   transition: width 0.1s;
+  border-radius: 2px;
 }
-.audio-controls .time { font-size: 12px; color: #666; min-width: 40px; text-align: center; }
+.player-time, .player-duration {
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+  font-variant-numeric: tabular-nums;
+}
 .loading {
   text-align: center;
   padding: 40px;
