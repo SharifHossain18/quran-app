@@ -143,7 +143,7 @@ function applyFontSize(size) {
   localStorage.setItem('arabicFontSize', size);
   document.documentElement.style.setProperty('--arabic-font-size', size + 'px');
   document.documentElement.style.setProperty('--arabic-line-height', Math.round(size * 1.6 / 36 * 10) / 10 + 'em');
-  const label = $('#fontSizeLabel');
+  const label = $('#fontSizeLabelModal');
   if (label) label.textContent = size;
 }
 
@@ -191,106 +191,115 @@ function getRukuCount(surah) {
 }
 
 /* ====================== AUDIO ====================== */
-function playSurah(surahNum) {
-  const surahPadded = String(surahNum).padStart(3,'0');
-  const url = `https://q1.pakdata.com/Audio/Script/${reciter}/${surahPadded}-01.mp3`;
+let currentAudio = null;
+let currentPlayingSurah = null;
+let repeatCount = 0;
+let perAyahDuration = 0;
 
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio = null;
+function playSurah(surahNum, btn) {
+  closeSettings();
+  if (currentPlayingSurah === surahNum && currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+    currentPlayingSurah = null;
+    repeatCount = 0;
+    if (btn) btn.classList.remove('playing');
+    document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+    return;
   }
-
-  currentSurahAudio = surahNum;
-  const audio = new Audio(url);
-  audio.preload = 'auto';
-  activeAudio = audio;
-  isPlaying = true;
-
-  const s = SURAH_NAMES[surahNum - 1];
-  $('#playerSurahName').textContent = s.bn;
-  $('#playerReciter').textContent = 'মিশারি রশিদ আল-আফাসি';
-  $('#player').classList.add('active');
-  $('#btnPlay').textContent = '\u23F8';
-
-  const progressBar = $('#playerProgress');
-  const timeLabel = $('#playerTime');
-  const durationLabel = $('#playerDuration');
-
-  audio.onloadedmetadata = () => {
-    durationLabel.textContent = formatTime(audio.duration);
-  };
-
-  audio.ontimeupdate = () => {
-    if (audio.duration) {
-      progressBar.style.width = (audio.currentTime / audio.duration * 100) + '%';
-      timeLabel.textContent = formatTime(audio.currentTime);
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  document.querySelectorAll('.surah-play-btn').forEach(b => b.classList.remove('playing'));
+  try {
+    const s = SURAH_NAMES[surahNum - 1];
+    const totalAyahs = s.ayas;
+    const surahPadded = String(surahNum).padStart(3,'0');
+    const url = `https://q1.pakdata.com/Audio/Script/${reciter}/${surahPadded}-01.mp3`;
+    currentAudio = new Audio(url);
+    currentAudio.playbackRate = parseFloat(playbackSettings.speed);
+    repeatCount = 0;
+    const maxRepeat = parseInt(playbackSettings.repeat) || 0;
+    const rangeVal = playbackSettings.range;
+    let rangeAyahs = totalAyahs;
+    if (rangeVal !== 'full') {
+      rangeAyahs = Math.min(parseInt(rangeVal) || totalAyahs, totalAyahs);
     }
-  };
+    let rangeRepeatCount = 0;
+    let ayahRepeatCount = 0;
+    let ayahIndex = 0;
+    perAyahDuration = 0;
 
-  audio.onended = () => {
-    $('#btnPlay').textContent = '\u25B6';
-    isPlaying = false;
-    progressBar.style.width = '0%';
-    timeLabel.textContent = '0:00';
-  };
+    currentAudio.onloadedmetadata = () => {
+      perAyahDuration = currentAudio.duration / totalAyahs;
+    };
 
-  audio.playbackRate = parseFloat(playbackSettings.speed);
+    currentAudio.ontimeupdate = () => {
+      if (!perAyahDuration || !rangeAyahs) return;
+      const currentAyah = Math.floor(currentAudio.currentTime / perAyahDuration);
+      const ayahNum = currentAyah + 1;
+      document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+      const ayahEl = document.querySelector(`#surahView .aya-wrapper[data-ayah="${ayahNum}"]`);
+      if (ayahEl) {
+        ayahEl.classList.add('active');
+        ayahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (currentAyah >= rangeAyahs && currentAyah > 0) {
+        currentAudio.pause();
+        const ayahRepeatSetting = playbackSettings.ayahRepeat;
+        if (ayahRepeatSetting !== 'once') {
+          const ayahRepeatMax = parseInt(ayahRepeatSetting) || 0;
+          ayahRepeatCount++;
+          if (ayahRepeatCount < ayahRepeatMax) {
+            currentAudio.currentTime = Math.max(0, (currentAyah - 1) * perAyahDuration);
+            currentAudio.play().catch(() => {});
+            return;
+          }
+        }
+        ayahRepeatCount = 0;
+        if (maxRepeat > 0) {
+          rangeRepeatCount++;
+          if (rangeRepeatCount < maxRepeat) {
+            currentAudio.currentTime = 0;
+            currentAudio.play().catch(() => {});
+            return;
+          }
+        }
+        currentPlayingSurah = null;
+        repeatCount = 0;
+        if (btn) btn.classList.remove('playing');
+      }
+    };
 
-  audio.play().catch(e => {
-    console.warn('Audio play failed:', e);
-    $('#btnPlay').textContent = '\u25B6';
-    isPlaying = false;
-  });
+    currentAudio.onended = () => {
+      if (maxRepeat > 0 && rangeVal === 'full') {
+        repeatCount++;
+        if (repeatCount < maxRepeat) {
+          currentAudio.currentTime = 0;
+          currentAudio.play().catch(() => {});
+          return;
+        }
+      }
+      currentPlayingSurah = null;
+      repeatCount = 0;
+      if (btn) btn.classList.remove('playing');
+    };
 
-  // Highlight active surah in list
-  document.querySelectorAll('.surah-card').forEach(el => {
-    el.classList.toggle('playing', Number(el.dataset.surah) === surahNum);
-  });
-}
-
-function togglePlayPause() {
-  if (!activeAudio) return;
-  if (activeAudio.paused) {
-    activeAudio.play();
-    $('#btnPlay').textContent = '\u23F8';
-    isPlaying = true;
-  } else {
-    activeAudio.pause();
-    $('#btnPlay').textContent = '\u25B6';
-    isPlaying = false;
-  }
-}
-
-function stopAudio() {
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio = null;
-  }
-  isPlaying = false;
-  currentSurahAudio = null;
-  $('#player').classList.remove('active');
-  $('#playerProgress').style.width = '0%';
-  $('#playerTime').textContent = '0:00';
-  document.querySelectorAll('.surah-card').forEach(el => el.classList.remove('playing'));
-}
-
-function prevSurah() {
-  if (!currentSurahAudio) return;
-  const prev = currentSurahAudio > 1 ? currentSurahAudio - 1 : 114;
-  playSurah(prev);
-}
-
-function nextSurah() {
-  if (!currentSurahAudio) return;
-  const next = currentSurahAudio < 114 ? currentSurahAudio + 1 : 1;
-  playSurah(next);
-}
-
-function formatTime(s) {
-  if (!s || !isFinite(s)) return '0:00';
-  const m = Math.floor(s/60);
-  const sec = Math.floor(s%60);
-  return m+':'+String(sec).padStart(2,'0');
+    currentAudio.onpause = () => {
+      document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+    };
+    currentAudio.play().then(() => {
+      currentPlayingSurah = surahNum;
+      if (btn) btn.classList.add('playing');
+      const selected = document.querySelector('#surahView .aya-wrapper.selected');
+      if (selected && perAyahDuration > 0) {
+        const ayahNum = parseInt(selected.dataset.ayah);
+        currentAudio.currentTime = (ayahNum - 1) * perAyahDuration;
+        selected.classList.remove('selected');
+        selected.classList.add('active');
+      }
+    }).catch(() => {});
+  } catch(e) {}
 }
 
 /* ====================== SURAH LIST ====================== */
@@ -303,7 +312,6 @@ function renderSurahList() {
       <div class="surah-bn">${s.bn}</div>
       <div class="surah-en">${s.en}</div>
       <div class="surah-aya-count">${s.ayas} আয়াত</div>
-      <button class="surah-play-btn" onclick="event.stopPropagation(); playSurah(${i+1})">▶</button>
     </div>
   `).join('');
 
@@ -342,6 +350,9 @@ async function openSurah(n) {
     <div class="back-bar">
       <button class="back-btn" onclick="closeSurah()">\u2190</button>
       <span><strong>${s.bn}</strong></span>
+      <div class="back-bar-actions">
+        <button class="surah-play-btn" onclick="event.stopPropagation(); playSurah(${n}, this)"><span class="play-icon"></span></button>
+      </div>
     </div>
     <div class="surah-header">
       <div class="surah-arabic">${s.ar}</div>
@@ -370,43 +381,52 @@ async function openSurah(n) {
   html += '</div>';
   view.innerHTML = html;
 
+  view.querySelectorAll('.aya-wrapper').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.surah-play-btn')) return;
+      view.querySelectorAll('.aya-wrapper.selected').forEach(a => a.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+  });
 }
 
 function closeSurah() {
-  stopAudio();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  currentPlayingSurah = null;
   currentSurah = null;
   currentAyahs = null;
   const view = $('#surahView');
   view.classList.remove('active');
   $('main').style.display = 'block';
+  document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
 }
 
 /* ====================== SETTINGS ====================== */
-function resetDefaults() {
-  playbackSettings = { range: 'full', repeat: '2', ayahRepeat: 'once', speed: '1' };
-  $('#rangeValue').textContent = 'Full Surah';
-  $('#repeatValue').textContent = '2';
-  $('#ayahRepeatValue').textContent = 'Once';
-  $('#speedValue').textContent = '1.0x';
-  if (activeAudio) activeAudio.playbackRate = 1;
+function toggleSettings() {
+  const modal = $('#settingsModal');
+  modal.classList.toggle('active');
+}
+function closeSettings() {
+  $('#settingsModal').classList.remove('active');
 }
 
 let playbackSettings = {
   range: 'full',
-  repeat: '2',
+  repeat: '1',
   ayahRepeat: 'once',
   speed: '1'
 };
 
-function toggleSettings() {
-  const panel = $('#settingsPanel');
-  panel.classList.toggle('active');
-}
-
 function stepRange(dir) {
-  const opts = ['Full Surah', 'Custom Range'];
-  const vals = ['full', 'custom'];
+  const opts = ['Full Surah'];
+  for (let i = 1; i <= 30; i++) opts.push(i + ' Ayat');
+  const vals = ['full'];
+  for (let i = 1; i <= 30; i++) vals.push(String(i));
   let idx = vals.indexOf(playbackSettings.range);
+  if (idx === -1) idx = 0;
   idx = (idx + dir + opts.length) % opts.length;
   playbackSettings.range = vals[idx];
   $('#rangeValue').textContent = opts[idx];
@@ -439,7 +459,15 @@ function stepSpeed(dir) {
   idx = (idx + dir + opts.length) % opts.length;
   playbackSettings.speed = opts[idx];
   $('#speedValue').textContent = opts[idx] + 'x';
-  if (activeAudio) activeAudio.playbackRate = parseFloat(opts[idx]);
+  if (currentAudio) currentAudio.playbackRate = parseFloat(opts[idx]);
+}
+
+function resetDefaults() {
+  playbackSettings = { range: 'full', repeat: '1', ayahRepeat: 'once', speed: '1' };
+  $('#rangeValue').textContent = 'Full Surah';
+  $('#repeatValue').textContent = '1';
+  $('#ayahRepeatValue').textContent = 'Once';
+  $('#speedValue').textContent = '1.0x';
 }
 
 /* ====================== INIT ====================== */
@@ -449,20 +477,17 @@ async function init() {
 
   // Font size controls
   applyFontSize(arabicFontSize);
-  $('#fontDec').addEventListener('click', () => applyFontSize(Math.max(14, arabicFontSize - 2)));
-  $('#fontInc').addEventListener('click', () => applyFontSize(Math.min(72, arabicFontSize + 2)));
+  $('#fontDecModal').addEventListener('click', () => applyFontSize(Math.max(14, arabicFontSize - 2)));
+  $('#fontIncModal').addEventListener('click', () => applyFontSize(Math.min(72, arabicFontSize + 2)));
 
   renderSurahList();
 }
 
 // Expose for onclick
 window.playSurah = playSurah;
-window.togglePlayPause = togglePlayPause;
-window.prevSurah = prevSurah;
-window.nextSurah = nextSurah;
 window.closeSurah = closeSurah;
-window.stopAudio = stopAudio;
 window.toggleSettings = toggleSettings;
+window.closeSettings = closeSettings;
 window.stepRange = stepRange;
 window.stepRepeat = stepRepeat;
 window.stepAyahRepeat = stepAyahRepeat;
