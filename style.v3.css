@@ -19,6 +19,12 @@ header {
   padding: 14px 12px 10px;
   color: #fff;
 }
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
 header h1 {
   font-family: 'PDMS_Saleem_QuranFont', 'Amiri', 'Scheherazade New', serif;
   font-size: 22px;
@@ -26,6 +32,25 @@ header h1 {
   direction: rtl;
   font-weight: normal;
 }
+.settings-gear {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.settings-gear:hover { background: rgba(255,255,255,0.35); }
 .subtitle {
   font-size: 12px;
   color: rgba(255,255,255,0.85);
@@ -340,6 +365,133 @@ main { padding: 12px; }
   color: rgba(255,255,255,0.8);
   font-variant-numeric: tabular-nums;
 }
+/* ============ SETTINGS PANEL ============ */
+.settings-panel {
+  display: none;
+  background: #fff;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid #e2e8e2;
+}
+.settings-panel.active { display: block; }
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #e8eee2;
+}
+.settings-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
+}
+.settings-close {
+  background: #f0f5ee;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setting-section { padding: 0; }
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.setting-row:hover { background: #f8fbf8; }
+.setting-row:active { background: #f0f5ee; }
+
+.setting-label-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setting-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+.setting-value {
+  font-size: 12px;
+  color: #49a35b;
+  font-weight: 500;
+}
+
+/* iOS-style Toggle Switch */
+.toggle-switch {
+  width: 50px;
+  height: 30px;
+  background: #e0e8e0;
+  border-radius: 15px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch.active { background: #49a35b; }
+.toggle-thumb {
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch.active .toggle-thumb { transform: translateX(20px); }
+
+/* Expandable Options */
+.setting-options {
+  display: none;
+  padding: 0 16px 8px;
+  flex-direction: column;
+  gap: 2px;
+}
+.setting-options.active { display: flex; }
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.option-item:hover { background: #f4faf4; }
+.option-item.selected { background: #edf7ed; color: #222; font-weight: 600; }
+.option-item .checkmark {
+  display: none;
+  color: #49a35b;
+  font-weight: 700;
+  font-size: 16px;
+}
+.option-item.selected .checkmark { display: inline; }
+
+.divider {
+  height: 1px;
+  background: #e8eee2;
+  margin: 0 16px;
+}
+
+.settings-spacer { height: 12px; }
+
 .loading {
   text-align: center;
   padding: 40px;

@@ -234,6 +234,8 @@ function playSurah(surahNum) {
     timeLabel.textContent = '0:00';
   };
 
+  audio.playbackRate = parseFloat(playbackSettings.speed);
+
   audio.play().catch(e => {
     console.warn('Audio play failed:', e);
     $('#btnPlay').textContent = '\u25B6';
@@ -379,6 +381,49 @@ function closeSurah() {
   $('main').style.display = 'block';
 }
 
+/* ====================== SETTINGS ====================== */
+let playbackSettings = {
+  range: 'full',
+  repeat: '1',
+  ayahRepeat: 'off',
+  speed: '1'
+};
+
+function toggleSettings() {
+  const panel = $('#settingsPanel');
+  panel.classList.toggle('active');
+}
+
+function toggleSettingOption(id) {
+  const el = $(`#${id}`);
+  el.classList.toggle('active');
+  const section = el.closest('.setting-section');
+  const toggle = section.querySelector('.toggle-switch');
+  if (toggle) toggle.classList.toggle('active');
+}
+
+function selectOption(type, value, el) {
+  const section = el.closest('.setting-section');
+  section.querySelectorAll('.option-item').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  playbackSettings[type] = value;
+
+  // Update display value
+  const vmap = {
+    range: { full: 'Full Surah', custom: 'Custom Range' },
+    repeat: { '1': '1 Time', '2': '2 Times', '3': '3 Times', '5': '5 Times', '10': '10 Times', '0': 'Infinite' },
+    ayahRepeat: { off: 'Off', '1': '1 Time', '2': '2 Times', '3': '3 Times', '5': '5 Times' },
+    speed: { '0.5': '0.5x', '0.75': '0.75x', '1': '1x', '1.25': '1.25x', '1.5': '1.5x', '2': '2x' }
+  };
+  const label = $(`#${type}Value`);
+  if (label) label.textContent = (vmap[type] && vmap[type][value]) || value;
+
+  // Apply speed
+  if (type === 'speed' && activeAudio) {
+    activeAudio.playbackRate = parseFloat(value);
+  }
+}
+
 /* ====================== INIT ====================== */
 async function init() {
   // Load page/ruku relations
@@ -399,6 +444,9 @@ window.prevSurah = prevSurah;
 window.nextSurah = nextSurah;
 window.closeSurah = closeSurah;
 window.stopAudio = stopAudio;
+window.toggleSettings = toggleSettings;
+window.toggleSettingOption = toggleSettingOption;
+window.selectOption = selectOption;
 
 document.addEventListener('DOMContentLoaded', init);
 })();
