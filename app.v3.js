@@ -382,10 +382,29 @@ function closeSurah() {
 }
 
 /* ====================== SETTINGS ====================== */
+function resetDefaults() {
+  playbackSettings = { range: 'full', repeat: '2', ayahRepeat: 'once', speed: '1' };
+  // Reset all toggles and selections
+  document.querySelectorAll('.toggle-switch').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.setting-options').forEach(o => o.classList.remove('active'));
+  // Reset option items
+  document.querySelectorAll('.option-item').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('[data-value="full"], [data-value="2"], [data-value="once"], [data-value="1"]').forEach(el => el.classList.add('selected'));
+  // Reset display values
+  const vlabel = { range: 'range', repeat: 'repeat', ayahRepeat: 'ayahRepeat', speed: 'speed' };
+  const vmap = { range: 'Full Surah', repeat: '2 Times', ayahRepeat: 'Once', speed: '1.0x' };
+  for (const [k, v] of Object.entries(vlabel)) {
+    const el = $(`#${v}Value`);
+    if (el) el.textContent = vmap[k];
+  }
+  // Reset audio speed
+  if (activeAudio) activeAudio.playbackRate = 1;
+}
+
 let playbackSettings = {
   range: 'full',
-  repeat: '1',
-  ayahRepeat: 'off',
+  repeat: '2',
+  ayahRepeat: 'once',
   speed: '1'
 };
 
@@ -412,8 +431,8 @@ function selectOption(type, value, el) {
   const vmap = {
     range: { full: 'Full Surah', custom: 'Custom Range' },
     repeat: { '1': '1 Time', '2': '2 Times', '3': '3 Times', '5': '5 Times', '10': '10 Times', '0': 'Infinite' },
-    ayahRepeat: { off: 'Off', '1': '1 Time', '2': '2 Times', '3': '3 Times', '5': '5 Times' },
-    speed: { '0.5': '0.5x', '0.75': '0.75x', '1': '1x', '1.25': '1.25x', '1.5': '1.5x', '2': '2x' }
+    ayahRepeat: { once: 'Once', '2': '2 Times', '3': '3 Times', '5': '5 Times', '10': '10 Times' },
+    speed: { '0.5': '0.5x', '0.75': '0.75x', '1': '1.0x', '1.25': '1.25x', '1.5': '1.5x', '2': '2x' }
   };
   const label = $(`#${type}Value`);
   if (label) label.textContent = (vmap[type] && vmap[type][value]) || value;
@@ -434,6 +453,13 @@ async function init() {
   $('#fontDec').addEventListener('click', () => applyFontSize(Math.max(14, arabicFontSize - 2)));
   $('#fontInc').addEventListener('click', () => applyFontSize(Math.min(72, arabicFontSize + 2)));
 
+  // Set default settings values
+  document.querySelectorAll('#repeatValue, #ayahRepeatValue, #speedValue').forEach(el => {
+    if (el.id === 'repeatValue') el.textContent = '2 Times';
+    if (el.id === 'ayahRepeatValue') el.textContent = 'Once';
+    if (el.id === 'speedValue') el.textContent = '1.0x';
+  });
+
   renderSurahList();
 }
 
@@ -447,6 +473,7 @@ window.stopAudio = stopAudio;
 window.toggleSettings = toggleSettings;
 window.toggleSettingOption = toggleSettingOption;
 window.selectOption = selectOption;
+window.resetDefaults = resetDefaults;
 
 document.addEventListener('DOMContentLoaded', init);
 })();

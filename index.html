@@ -30,28 +30,23 @@
 
   <!-- Settings Panel -->
   <div id="settingsPanel" class="settings-panel">
-    <div class="settings-header">
-      <span class="settings-title">Playback Settings</span>
-      <button class="settings-close" onclick="toggleSettings()">✕</button>
-    </div>
-
-    <!-- Option 1: Playback Range -->
-    <div class="setting-section">
-      <div class="setting-row" onclick="toggleSettingOption('rangeOptions')">
+    <!-- Option 1: Range -->
+    <div class="setting-section" onclick="toggleSettingOption('rangeOptions')">
+      <div class="setting-row">
         <div class="setting-label-area">
-          <span class="setting-label">Playback Range</span>
-          <span class="setting-value" id="rangeValue">Full Surah</span>
+          <span class="setting-label">Range</span>
+          <span class="setting-desc">Set a Range between Sura, Ruku, page or Aya for reading</span>
         </div>
         <div class="toggle-switch" id="rangeToggle">
           <div class="toggle-thumb"></div>
         </div>
       </div>
       <div class="setting-options" id="rangeOptions">
-        <div class="option-item selected" data-value="full" onclick="selectOption('range', 'full', this)">
+        <div class="option-item selected" data-value="full" onclick="event.stopPropagation(); selectOption('range', 'full', this)">
           <span>Full Surah</span>
           <span class="checkmark">✓</span>
         </div>
-        <div class="option-item" data-value="custom" onclick="selectOption('range', 'custom', this)">
+        <div class="option-item" data-value="custom" onclick="event.stopPropagation(); selectOption('range', 'custom', this)">
           <span>Custom Range</span>
           <span class="checkmark">✓</span>
         </div>
@@ -60,73 +55,78 @@
 
     <div class="divider"></div>
 
-    <!-- Option 2: Repeat Count -->
-    <div class="setting-section">
-      <div class="setting-row" onclick="toggleSettingOption('repeatOptions')">
+    <!-- Option 2: Range Repeat -->
+    <div class="setting-section" onclick="toggleSettingOption('repeatOptions')">
+      <div class="setting-row">
         <div class="setting-label-area">
-          <span class="setting-label">Range Repeat</span>
-          <span class="setting-value" id="repeatValue">1 Time</span>
+          <span class="setting-label">Range Repeat <span class="setting-value" id="repeatValue">2 times</span></span>
+          <span class="setting-desc">Set the repeat parameter for the set range</span>
         </div>
         <div class="toggle-switch" id="repeatToggle">
           <div class="toggle-thumb"></div>
         </div>
       </div>
       <div class="setting-options" id="repeatOptions">
-        <div class="option-item" data-value="1" onclick="selectOption('repeat', '1', this)"><span>1 Time</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="2" onclick="selectOption('repeat', '2', this)"><span>2 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="3" onclick="selectOption('repeat', '3', this)"><span>3 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="5" onclick="selectOption('repeat', '5', this)"><span>5 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="10" onclick="selectOption('repeat', '10', this)"><span>10 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="0" onclick="selectOption('repeat', '0', this)"><span>Infinite</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="1" onclick="event.stopPropagation(); selectOption('repeat', '1', this)"><span>1 Time</span><span class="checkmark">✓</span></div>
+        <div class="option-item selected" data-value="2" onclick="event.stopPropagation(); selectOption('repeat', '2', this)"><span>2 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="3" onclick="event.stopPropagation(); selectOption('repeat', '3', this)"><span>3 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="5" onclick="event.stopPropagation(); selectOption('repeat', '5', this)"><span>5 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="10" onclick="event.stopPropagation(); selectOption('repeat', '10', this)"><span>10 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="0" onclick="event.stopPropagation(); selectOption('repeat', '0', this)"><span>Infinite</span><span class="checkmark">✓</span></div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- Option 3: Ayah Repeat -->
-    <div class="setting-section">
-      <div class="setting-row" onclick="toggleSettingOption('ayahRepeatOptions')">
+    <!-- Option 3: Individual Aya Repeat -->
+    <div class="setting-section" onclick="toggleSettingOption('ayahRepeatOptions')">
+      <div class="setting-row">
         <div class="setting-label-area">
-          <span class="setting-label">Ayah Repeat</span>
-          <span class="setting-value" id="ayahRepeatValue">Off</span>
+          <span class="setting-label">Individual Aya Repeat <span class="setting-value" id="ayahRepeatValue">Once</span></span>
+          <span class="setting-desc">Set the repeat parameter for every Aya</span>
         </div>
         <div class="toggle-switch" id="ayahRepeatToggle">
           <div class="toggle-thumb"></div>
         </div>
       </div>
       <div class="setting-options" id="ayahRepeatOptions">
-        <div class="option-item selected" data-value="off" onclick="selectOption('ayahRepeat', 'off', this)"><span>Off</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="1" onclick="selectOption('ayahRepeat', '1', this)"><span>1 Time</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="2" onclick="selectOption('ayahRepeat', '2', this)"><span>2 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="3" onclick="selectOption('ayahRepeat', '3', this)"><span>3 Times</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="5" onclick="selectOption('ayahRepeat', '5', this)"><span>5 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item selected" data-value="once" onclick="event.stopPropagation(); selectOption('ayahRepeat', 'once', this)"><span>Once</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="2" onclick="event.stopPropagation(); selectOption('ayahRepeat', '2', this)"><span>2 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="3" onclick="event.stopPropagation(); selectOption('ayahRepeat', '3', this)"><span>3 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="5" onclick="event.stopPropagation(); selectOption('ayahRepeat', '5', this)"><span>5 Times</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="10" onclick="event.stopPropagation(); selectOption('ayahRepeat', '10', this)"><span>10 Times</span><span class="checkmark">✓</span></div>
       </div>
     </div>
 
     <div class="divider"></div>
 
     <!-- Option 4: Playback Speed -->
-    <div class="setting-section">
-      <div class="setting-row" onclick="toggleSettingOption('speedOptions')">
+    <div class="setting-section" onclick="toggleSettingOption('speedOptions')">
+      <div class="setting-row">
         <div class="setting-label-area">
-          <span class="setting-label">Playback Speed</span>
-          <span class="setting-value" id="speedValue">1x</span>
+          <span class="setting-label">Playback Speed <span class="setting-value" id="speedValue">1.0x</span></span>
+          <span class="setting-desc">Set the playback speed of the Quran audio</span>
         </div>
         <div class="toggle-switch" id="speedToggle">
           <div class="toggle-thumb"></div>
         </div>
       </div>
       <div class="setting-options" id="speedOptions">
-        <div class="option-item" data-value="0.5" onclick="selectOption('speed', '0.5', this)"><span>0.5x</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="0.75" onclick="selectOption('speed', '0.75', this)"><span>0.75x</span><span class="checkmark">✓</span></div>
-        <div class="option-item selected" data-value="1" onclick="selectOption('speed', '1', this)"><span>1x</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="1.25" onclick="selectOption('speed', '1.25', this)"><span>1.25x</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="1.5" onclick="selectOption('speed', '1.5', this)"><span>1.5x</span><span class="checkmark">✓</span></div>
-        <div class="option-item" data-value="2" onclick="selectOption('speed', '2', this)"><span>2x</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="0.5" onclick="event.stopPropagation(); selectOption('speed', '0.5', this)"><span>0.5x</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="0.75" onclick="event.stopPropagation(); selectOption('speed', '0.75', this)"><span>0.75x</span><span class="checkmark">✓</span></div>
+        <div class="option-item selected" data-value="1" onclick="event.stopPropagation(); selectOption('speed', '1', this)"><span>1.0x</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="1.25" onclick="event.stopPropagation(); selectOption('speed', '1.25', this)"><span>1.25x</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="1.5" onclick="event.stopPropagation(); selectOption('speed', '1.5', this)"><span>1.5x</span><span class="checkmark">✓</span></div>
+        <div class="option-item" data-value="2" onclick="event.stopPropagation(); selectOption('speed', '2', this)"><span>2x</span><span class="checkmark">✓</span></div>
       </div>
     </div>
 
-    <div class="settings-spacer"></div>
+    <div class="divider"></div>
+
+    <!-- DEFAULT Button -->
+    <div class="default-section">
+      <button class="default-btn" onclick="resetDefaults()">DEFAULT</button>
+    </div>
   </div>
 
   <main>

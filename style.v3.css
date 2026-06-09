@@ -376,41 +376,16 @@ main { padding: 12px; }
 }
 .settings-panel.active { display: block; }
 
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid #e8eee2;
-}
-.settings-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #222;
-}
-.settings-close {
-  background: #f0f5ee;
-  border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 13px;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .setting-section { padding: 0; }
 
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 16px 16px;
   cursor: pointer;
   transition: background 0.1s;
+  min-height: 82px;
 }
 .setting-row:hover { background: #f8fbf8; }
 .setting-row:active { background: #f0f5ee; }
@@ -418,17 +393,25 @@ main { padding: 12px; }
 .setting-label-area {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  flex: 1;
+  padding-right: 16px;
 }
 .setting-label {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #222;
 }
 .setting-value {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 400;
   color: #49a35b;
-  font-weight: 500;
+  margin-left: 6px;
+}
+.setting-desc {
+  font-size: 13px;
+  color: #8a9a8a;
+  line-height: 1.4;
 }
 
 /* iOS-style Toggle Switch */
@@ -458,7 +441,7 @@ main { padding: 12px; }
 /* Expandable Options */
 .setting-options {
   display: none;
-  padding: 0 16px 8px;
+  padding: 0 16px 10px;
   flex-direction: column;
   gap: 2px;
 }
@@ -487,10 +470,29 @@ main { padding: 12px; }
 .divider {
   height: 1px;
   background: #e8eee2;
-  margin: 0 16px;
 }
 
-.settings-spacer { height: 12px; }
+.default-section {
+  padding: 14px 16px;
+  text-align: center;
+}
+.default-btn {
+  background: none;
+  border: 1.5px solid #dce5d4;
+  color: #8a9a8a;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  width: 100%;
+}
+.default-btn:hover {
+  border-color: #49a35b;
+  color: #49a35b;
+}
 
 .loading {
   text-align: center;
