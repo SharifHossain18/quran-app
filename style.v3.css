@@ -173,17 +173,24 @@ main { padding: 12px; }
   direction: rtl;
   line-height: var(--arabic-line-height, 1.8em);
 }
-.aya-wrapper {
-  margin: 0;
-  padding: 4px 0 4px;
+.ayah-text {
+  unicode-bidi: embed;
 }
+.aya-wrapper {
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 8px;
+  padding: 4px 8px;
+  position: relative;
+  margin: 0;
+}
+.aya-wrapper:hover { background: rgba(0,0,0,0.03); }
+.aya-wrapper:active { background: rgba(0,0,0,0.06); }
 .aya-wrapper + .aya-wrapper {
   padding-top: 20px;
   border-top: 1px solid #dce5d4;
 }
-.aya-row {
-  padding: 0;
-}
+.aya-row { display: flex; align-items: flex-start; gap: 8px; }
 .aya-ar-side {
   font-family: 'PDMS_Saleem_QuranFont', 'Traditional Arabic', 'Scheherazade New', serif;
   font-size: var(--arabic-font-size, 36px);
@@ -193,10 +200,25 @@ main { padding: 12px; }
   color: #111;
   word-spacing: 0.15em;
   unicode-bidi: embed;
+  flex: 1;
 }
-.ayah-text {
-  unicode-bidi: embed;
+.aya-play-btn {
+  background: #9dc1a7;
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+  transition: all 0.15s;
 }
+.aya-play-btn:hover { background: #7da88a; transform: scale(1.1); }
 .ayah-num-circle {
   display: inline-flex;
   align-items: center;

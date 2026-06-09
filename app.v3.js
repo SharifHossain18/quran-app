@@ -326,12 +326,13 @@ async function openSurah(n) {
   arData.ayahs.forEach((a, i) => {
     const bnAyah = bnData && bnData.ayahs[i] ? bnData.ayahs[i].text : '';
     html += `
-      <div class="aya-wrapper" data-surah="${n}" data-ayah="${a.numberInSurah}">
+      <div class="aya-wrapper" data-surah="${n}" data-ayah="${a.numberInSurah}" onclick="playAyahAudio(${n}, ${a.numberInSurah})">
         <div class="aya-row">
           <div class="aya-ar-side">
             <span class="ayah-text">${a.text}</span>
             <span class="ayah-num-circle">${a.numberInSurah}</span>
           </div>
+          <button class="aya-play-btn" title="Play this ayah">▶</button>
         </div>
         ${bnAyah ? `<div class="aya-bn-line">${bnAyah}</div>` : ''}
       </div>
