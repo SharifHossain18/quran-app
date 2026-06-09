@@ -414,58 +414,38 @@ main { padding: 12px; }
   line-height: 1.4;
 }
 
-/* iOS-style Toggle Switch */
-.toggle-switch {
-  width: 50px;
-  height: 30px;
-  background: #e0e8e0;
-  border-radius: 15px;
-  position: relative;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-.toggle-switch.active { background: #49a35b; }
-.toggle-thumb {
-  width: 26px;
-  height: 26px;
-  background: #fff;
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-.toggle-switch.active .toggle-thumb { transform: translateX(20px); }
-
-/* Expandable Options */
-.setting-options {
-  display: none;
-  padding: 0 16px 10px;
-  flex-direction: column;
-  gap: 2px;
-}
-.setting-options.active { display: flex; }
-.option-item {
+/* Stepper Controls (- value +) */
+.stepper-control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #444;
-  cursor: pointer;
-  transition: all 0.1s;
+  gap: 6px;
+  flex-shrink: 0;
 }
-.option-item:hover { background: #f4faf4; }
-.option-item.selected { background: #edf7ed; color: #222; font-weight: 600; }
-.option-item .checkmark {
-  display: none;
+.stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #e8f0e8;
   color: #49a35b;
+  font-size: 18px;
   font-weight: 700;
-  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  line-height: 1;
 }
-.option-item.selected .checkmark { display: inline; }
+.stepper-btn:hover { background: #d4e8d4; }
+.stepper-btn:active { background: #c0dcc0; }
+.stepper-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  min-width: 60px;
+  text-align: center;
+}
 
 .divider {
   height: 1px;
