@@ -253,7 +253,8 @@ main { padding: 16px; }
 
 .search-row {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 20px;
   width: 100%;
 }
@@ -264,76 +265,104 @@ main { padding: 16px; }
 }
 
 #surahSearchContainer {
-  flex: 3;
+  flex: unset;
 }
 
 #ayahJumpContainer {
-  flex: 2;
+  flex: unset;
   display: flex;
+  align-items: center;
+  position: relative;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-light);
+  border-radius: 50px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+#ayahJumpContainer:focus-within {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(203, 161, 53, 0.12);
 }
 
 #surahSearch {
   width: 100%;
-  padding: 12px 16px 12px 42px;
+  padding: 13px 20px 13px 48px;
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 50px;
   color: var(--color-text-main);
-  font-size: 15px;
+  font-size: 14px;
   transition: all 0.25s ease;
   outline: none;
+  font-family: inherit;
 }
+
+#surahSearch::placeholder { color: var(--color-text-muted); opacity: 0.8; }
 
 #surahSearch:focus {
   border-color: var(--color-gold);
-  box-shadow: 0 0 10px var(--color-gold-glow);
+  box-shadow: 0 0 0 3px rgba(203, 161, 53, 0.12);
   background: var(--bg-card-hover);
 }
 
 #ayahJumpInput {
-  width: 100%;
-  padding: 12px 16px 12px 42px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-right: none;
-  border-radius: 10px 0 0 10px;
+  flex: 1;
+  padding: 13px 16px 13px 48px;
+  background: transparent;
+  border: none;
   color: var(--color-text-main);
-  font-size: 15px;
-  transition: all 0.25s ease;
+  font-size: 14px;
   outline: none;
+  font-family: inherit;
+  min-width: 0;
 }
 
-#ayahJumpInput:focus {
-  border-color: var(--color-gold);
-  background: var(--bg-card-hover);
-}
+#ayahJumpInput::placeholder { color: var(--color-text-muted); opacity: 0.8; }
 
 .jump-btn {
   background: var(--color-gold);
-  border: 1px solid var(--border-light);
-  border-left: none;
-  border-radius: 0 10px 10px 0;
+  border: none;
+  border-radius: 50px;
   color: var(--bg-main);
-  font-weight: 700;
-  padding: 0 16px;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 8px 18px;
+  margin: 4px 4px 4px 0;
   cursor: pointer;
   transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .jump-btn:hover {
   background: var(--color-gold-light);
-  box-shadow: 0 0 10px var(--color-gold-glow);
+  box-shadow: 0 0 12px var(--color-gold-glow);
+  transform: scale(1.03);
 }
 
 .search-container .search-icon {
   position: absolute;
-  left: 14px;
+  left: 17px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-gold-light);
-  font-size: 16px;
+  color: var(--color-gold);
+  font-size: 15px;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.85;
+}
+
+#ayahJumpContainer .search-icon {
+  position: absolute;
+  left: 17px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gold);
+  font-size: 15px;
+  pointer-events: none;
+  opacity: 0.85;
+  z-index: 1;
 }
 
 /* Navigation Tabs */
@@ -579,52 +608,162 @@ main { padding: 16px; }
 }
 
 /* Surah reader page */
-#surahView { padding: 0 16px 20px; display: none; }
+#surahView { padding: 0 0 20px; display: none; }
 #surahView.active { display: block; }
 #surahView .ayahs-container {
   background: transparent;
-  padding: 4px 0;
+  padding: 4px 16px;
   margin: 10px 0;
 }
+#surahView .surah-header { padding: 16px 16px; }
+#surahView .bismillah { margin: 0 16px 10px; }
 
-.back-bar {
+/* ======= READER NAV BAR (pill style, like reference image) ======= */
+.reader-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.back-bar > span {
-  flex: 1;
-  text-align: center;
-  font-size: 18px;
-  color: var(--color-gold-light);
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--color-gold-light);
-  padding: 4px 10px;
-  transition: transform 0.2s;
-  display: flex;
-  align-items: center;
-}
-
-.back-btn:hover {
-  transform: translateX(-3px);
-  color: var(--color-white);
-}
-
-.back-bar-actions {
-  display: flex;
-  align-items: center;
   gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #0a2a22 0%, #0c2d25 100%);
+  border-bottom: 1px solid rgba(203, 161, 53, 0.2);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.5);
 }
+
+.rnb-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 50px;
+  border: 1.5px solid rgba(203, 161, 53, 0.35);
+  background: rgba(203, 161, 53, 0.08);
+  color: var(--color-text-main);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.rnb-pill:hover {
+  background: rgba(203, 161, 53, 0.18);
+  border-color: var(--color-gold);
+  color: var(--color-gold-light);
+}
+
+/* Left pill — back + Juz */
+.rnb-back {
+  background: rgba(203, 161, 53, 0.12);
+  min-width: 90px;
+}
+
+.rnb-arrow {
+  font-size: 16px;
+  color: var(--color-gold-light);
+  line-height: 1;
+}
+
+.rnb-juz-label {
+  color: var(--color-gold-light);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Center pill — live ayah number */
+.rnb-ayah-counter {
+  background: rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.15);
+  color: var(--color-white);
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 52px;
+  justify-content: center;
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease;
+}
+
+/* Right pill — surah number + name + play */
+.rnb-surah-info {
+  background: rgba(203, 161, 53, 0.12);
+  flex: 1;
+  max-width: 200px;
+  justify-content: flex-end;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.rnb-surah-num {
+  color: var(--color-gold);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.rnb-surah-name {
+  color: var(--color-text-main);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+  letter-spacing: 0.3px;
+}
+
+/* Play button inside rnb pill */
+.rnb-play-btn {
+  background: var(--color-gold) !important;
+  border: none !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 8px var(--color-gold-glow) !important;
+}
+
+.rnb-play-btn:hover {
+  transform: scale(1.12) !important;
+}
+
+.rnb-play-btn .play-icon {
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 9px;
+  border-color: transparent transparent transparent var(--bg-main);
+  margin-left: 2px;
+}
+
+.rnb-play-btn.playing {
+  background: var(--color-white) !important;
+  animation: pulseGold 2s infinite;
+  position: relative;
+}
+
+.rnb-play-btn.playing .play-icon { display: none; }
+
+.rnb-play-btn.playing::before,
+.rnb-play-btn.playing::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 11px;
+  background: var(--bg-main);
+  border-radius: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.rnb-play-btn.playing::before { left: 10px; }
+.rnb-play-btn.playing::after { right: 10px; }
 
 .surah-play-btn {
   background: var(--color-gold);
@@ -689,11 +828,7 @@ main { padding: 16px; }
   100% { box-shadow: 0 0 0 0 rgba(255,255,255, 0); }
 }
 
-.back-bar-actions .surah-play-btn {
-  position: static;
-  width: 44px;
-  height: 44px;
-}
+/* .back-bar-actions rule removed — now using .rnb-play-btn */
 
 .surah-header {
   text-align: center;
@@ -837,15 +972,20 @@ main { padding: 16px; }
 }
 @media (max-width: 600px) {
   #surahList, #juzList { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  #surahView { padding: 0 8px 15px; }
-  #surahView .ayahs-container { padding: 0; margin: 5px 0; }
+  #surahView { padding: 0 0 15px; }
+  #surahView .ayahs-container { padding: 2px 8px; margin: 5px 0; }
+  .reader-nav-bar { padding: 8px 10px; gap: 6px; }
+  .rnb-pill { padding: 6px 10px; font-size: 12px; }
+  .rnb-back { min-width: 76px; }
+  .rnb-surah-name { max-width: 70px; font-size: 11px; }
+  .rnb-ayah-counter { min-width: 44px; font-size: 13px; }
   header h1 { font-size: 20px; }
   :root { --arabic-font-size: 28px; --arabic-line-height: 1.65em; }
   .aya-wrapper { padding: 12px 6px; }
   .aya-ar-side { line-height: 1.65em; }
   .ayah-num-circle { width: 24px; height: 24px; font-size: 10px; }
   .aya-bn-line { font-size: 14px; margin-top: 8px; padding-left: 8px; }
-  .search-row { flex-direction: column; gap: 8px; }
+  .search-row { gap: 8px; }
   .daily-verse-card { padding: 14px; margin-bottom: 16px; }
   .daily-verse-ar { font-size: 20px; line-height: 1.7em; }
   .daily-verse-bn { font-size: 13px; }

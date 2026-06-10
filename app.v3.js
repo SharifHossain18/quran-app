@@ -448,18 +448,25 @@ async function openSurah(n, highlightAyah = null) {
 
   currentAyahs = arData.ayahs;
 
+  const juzNum = SURAH_TO_JUZ[n - 1] || 1;
+
   let html = `
-    <div class="back-bar">
-      <button class="back-btn" onclick="closeSurah()">\u2190</button>
-      <span><strong>${s.bn}</strong></span>
-      <div class="back-bar-actions">
-        <button class="surah-play-btn" onclick="event.stopPropagation(); playSurah(${n}, this)"><span class="play-icon"></span></button>
+    <div class="reader-nav-bar" id="readerNavBar">
+      <button class="rnb-pill rnb-back" onclick="closeSurah()">
+        <span class="rnb-arrow">&#8592;</span>
+        <span class="rnb-juz-label">পারা ${juzNum}</span>
+      </button>
+      <div class="rnb-pill rnb-ayah-counter" id="readerAyahCounter">১</div>
+      <div class="rnb-pill rnb-surah-info">
+        <span class="rnb-surah-num">${n}</span>
+        <span class="rnb-surah-name">${s.en.toUpperCase()}</span>
+        <button class="rnb-play-btn surah-play-btn" onclick="event.stopPropagation(); playSurah(${n}, this)"><span class="play-icon"></span></button>
       </div>
     </div>
     <div class="surah-header">
       <div class="surah-arabic">${s.ar}</div>
       <div class="surah-bn">${s.bn}</div>
-      <div class="surah-info">${s.type} \u2022 ${s.ayas} আয়াত</div>
+      <div class="surah-info">${s.type} &bull; ${s.ayas} আয়াত</div>
     </div>
     ${n > 1 && n !== 9 ? '<div class="bismillah">\u0628\u0650\u0633\u0652\u0645\u0650 \u0627\u0644\u0644\u0651\u064e\u0647\u0650 \u0627\u0644\u0631\u0651\u064e\u062d\u0652\u0645\u064e\u0670\u0646\u0650 \u0627\u0644\u0631\u0651\u064e\u062d\u0650\u064a\u0645\u0650</div>' : ''}
     <div class="ayahs-container">
@@ -493,14 +500,36 @@ async function openSurah(n, highlightAyah = null) {
     }
   }
 
+  /* --- Scroll-based ayah counter in nav bar --- */
+  const ayahCounter = document.getElementById('readerAyahCounter');
+  if (ayahCounter && 'IntersectionObserver' in window) {
+    const wrappers = view.querySelectorAll('.aya-wrapper');
+    const observer = new IntersectionObserver((entries) => {
+      // Find topmost visible ayah
+      let topEntry = null;
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          if (!topEntry || e.boundingClientRect.top < topEntry.boundingClientRect.top) {
+            topEntry = e;
+          }
+        }
+      });
+      if (topEntry) {
+        const ayahNum = topEntry.target.dataset.ayah;
+        ayahCounter.textContent = ayahNum;
+      }
+    }, { threshold: 0.3, rootMargin: '-60px 0px 0px 0px' });
+    wrappers.forEach(w => observer.observe(w));
+  }
+
   view.querySelectorAll('.aya-wrapper').forEach(el => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('.surah-play-btn')) return;
+      if (e.target.closest('.surah-play-btn') || e.target.closest('.rnb-play-btn')) return;
       view.querySelectorAll('.aya-wrapper.selected').forEach(a => a.classList.remove('selected'));
       el.classList.add('selected');
 
       if (currentPlayingSurah === n) {
-        const playBtn = document.querySelector('#surahView .surah-play-btn');
+        const playBtn = document.querySelector('#surahView .rnb-play-btn');
         startAyahIndex = parseInt(el.dataset.ayah) - 1;
         currentAyahIndex = startAyahIndex;
         ayahsPlayedInRange = 0;
@@ -590,23 +619,24 @@ function resetDefaults() {
 /* ====================== SEARCH FILTER ====================== */
 function filterSurahs() {
   const query = $('#surahSearch').value.toLowerCase().trim();
-  const cards = $$('.surah-card');
+  // Only target surah cards inside #surahList — Juz cards share the class but live in #juzList
+  const cards = $$('#surahList .surah-card');
   cards.forEach(card => {
     const surahNum = card.dataset.surah;
-    const nameAr = card.querySelector('.surah-arabic').textContent.toLowerCase();
-    const nameBn = card.querySelector('.surah-bn').textContent.toLowerCase();
-    const nameEn = card.querySelector('.surah-en').textContent.toLowerCase();
+    // Guard: skip any card that doesn't have a surah number (shouldn't happen, but safety first)
+    if (surahNum === undefined) return;
+
+    const nameAr = (card.querySelector('.surah-arabic')?.textContent || '').toLowerCase();
+    const nameBn = (card.querySelector('.surah-bn')?.textContent || '').toLowerCase();
+    const nameEn = (card.querySelector('.surah-en')?.textContent || '').toLowerCase();
     
-    const matches = surahNum.includes(query) || 
+    const matches = !query ||
+                    surahNum.includes(query) || 
                     nameAr.includes(query) || 
                     nameBn.includes(query) || 
                     nameEn.includes(query);
                     
-    if (matches) {
-      card.style.display = 'block';
-    } else {
-      card.style.display = 'none';
-    }
+    card.style.display = matches ? 'block' : 'none';
   });
 }
 
@@ -740,6 +770,22 @@ const CURATED_VERSES = [
     bn: 'নিশ্চয়ই কষ্টের সাথেই স্বস্তি রয়েছে।',
     en: 'For indeed, with hardship [will be] ease.'
   }
+];
+
+/* Maps surah number (1-indexed) → Juz it STARTS in (standard 30-Juz division) */
+const SURAH_TO_JUZ = [
+  /* 1-10  */ 1, 1, 3, 4, 5, 6, 7, 8, 9,10,
+  /* 11-20 */11,11,13,13,14,14,15,15,16,16,
+  /* 21-30 */17,17,18,18,18,19,19,20,20,21,
+  /* 31-40 */21,21,21,22,22,22,23,23,23,24,
+  /* 41-50 */24,25,25,25,25,26,26,26,26,26,
+  /* 51-60 */27,27,27,27,27,27,27,28,28,28,
+  /* 61-70 */28,28,28,28,28,28,29,29,29,29,
+  /* 71-80 */29,29,29,29,29,29,29,30,30,30,
+  /* 81-90 */30,30,30,30,30,30,30,30,30,30,
+  /* 91-100*/30,30,30,30,30,30,30,30,30,30,
+  /*101-110*/30,30,30,30,30,30,30,30,30,30,
+  /*111-114*/30,30,30,30
 ];
 
 const JUZ_LIST = [
