@@ -193,113 +193,135 @@ function getRukuCount(surah) {
 /* ====================== AUDIO ====================== */
 let currentAudio = null;
 let currentPlayingSurah = null;
-let repeatCount = 0;
-let perAyahDuration = 0;
+let currentAyahIndex = 0;
+let startAyahIndex = 0;
+let ayahsPlayedInRange = 0;
+let rangeRepeatCount = 0;
+let ayahRepeatCount = 0;
 
-function playSurah(surahNum, btn) {
-  closeSettings();
-  if (currentPlayingSurah === surahNum && currentAudio && !currentAudio.paused) {
-    currentAudio.pause();
-    currentPlayingSurah = null;
-    repeatCount = 0;
-    if (btn) btn.classList.remove('playing');
-    document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
-    return;
-  }
+function stopAudio() {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio = null;
   }
-  document.querySelectorAll('.surah-play-btn').forEach(b => b.classList.remove('playing'));
-  try {
-    const s = SURAH_NAMES[surahNum - 1];
-    const totalAyahs = s.ayas;
-    const surahPadded = String(surahNum).padStart(3,'0');
-    const url = `https://q1.pakdata.com/Audio/Script/${reciter}/${surahPadded}-01.mp3`;
-    currentAudio = new Audio(url);
-    currentAudio.playbackRate = parseFloat(playbackSettings.speed);
-    repeatCount = 0;
-    const maxRepeat = parseInt(playbackSettings.repeat) || 0;
-    const rangeVal = playbackSettings.range;
-    let rangeAyahs = totalAyahs;
-    if (rangeVal !== 'full') {
-      rangeAyahs = Math.min(parseInt(rangeVal) || totalAyahs, totalAyahs);
-    }
-    let rangeRepeatCount = 0;
-    let ayahRepeatCount = 0;
-    let ayahIndex = 0;
-    perAyahDuration = 0;
+  currentPlayingSurah = null;
+  document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+}
 
-    currentAudio.onloadedmetadata = () => {
-      perAyahDuration = currentAudio.duration / totalAyahs;
-    };
-
-    currentAudio.ontimeupdate = () => {
-      if (!perAyahDuration || !rangeAyahs) return;
-      const currentAyah = Math.floor(currentAudio.currentTime / perAyahDuration);
-      const ayahNum = currentAyah + 1;
-      document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
-      const ayahEl = document.querySelector(`#surahView .aya-wrapper[data-ayah="${ayahNum}"]`);
-      if (ayahEl) {
-        ayahEl.classList.add('active');
-        ayahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      if (currentAyah >= rangeAyahs && currentAyah > 0) {
-        currentAudio.pause();
-        const ayahRepeatSetting = playbackSettings.ayahRepeat;
-        if (ayahRepeatSetting !== 'once') {
-          const ayahRepeatMax = parseInt(ayahRepeatSetting) || 0;
-          ayahRepeatCount++;
-          if (ayahRepeatCount < ayahRepeatMax) {
-            currentAudio.currentTime = Math.max(0, (currentAyah - 1) * perAyahDuration);
-            currentAudio.play().catch(() => {});
-            return;
-          }
-        }
-        ayahRepeatCount = 0;
-        if (maxRepeat > 0) {
-          rangeRepeatCount++;
-          if (rangeRepeatCount < maxRepeat) {
-            currentAudio.currentTime = 0;
-            currentAudio.play().catch(() => {});
-            return;
-          }
-        }
-        currentPlayingSurah = null;
-        repeatCount = 0;
-        if (btn) btn.classList.remove('playing');
-      }
-    };
-
-    currentAudio.onended = () => {
-      if (maxRepeat > 0 && rangeVal === 'full') {
-        repeatCount++;
-        if (repeatCount < maxRepeat) {
-          currentAudio.currentTime = 0;
-          currentAudio.play().catch(() => {});
-          return;
-        }
-      }
-      currentPlayingSurah = null;
-      repeatCount = 0;
+function playSurah(surahNum, btn) {
+  closeSettings();
+  if (currentPlayingSurah === surahNum && currentAudio) {
+    if (!currentAudio.paused) {
+      currentAudio.pause();
       if (btn) btn.classList.remove('playing');
-    };
+    } else {
+      currentAudio.playbackRate = parseFloat(playbackSettings.speed);
+      currentAudio.play().then(() => {
+        if (btn) btn.classList.add('playing');
+      }).catch(() => {});
+    }
+    return;
+  }
 
-    currentAudio.onpause = () => {
-      document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
-    };
-    currentAudio.play().then(() => {
-      currentPlayingSurah = surahNum;
-      if (btn) btn.classList.add('playing');
-      const selected = document.querySelector('#surahView .aya-wrapper.selected');
-      if (selected && perAyahDuration > 0) {
-        const ayahNum = parseInt(selected.dataset.ayah);
-        currentAudio.currentTime = (ayahNum - 1) * perAyahDuration;
-        selected.classList.remove('selected');
-        selected.classList.add('active');
-      }
-    }).catch(() => {});
-  } catch(e) {}
+  stopAudio();
+
+  currentPlayingSurah = surahNum;
+  const s = SURAH_NAMES[surahNum - 1];
+  const totalAyahs = s.ayas;
+
+  const selectedEl = document.querySelector('#surahView .aya-wrapper.selected');
+  if (selectedEl) {
+    startAyahIndex = parseInt(selectedEl.dataset.ayah) - 1;
+    selectedEl.classList.remove('selected');
+  } else {
+    startAyahIndex = 0;
+  }
+
+  currentAyahIndex = startAyahIndex;
+  ayahsPlayedInRange = 0;
+  rangeRepeatCount = 0;
+  ayahRepeatCount = 0;
+
+  playNextAyah(btn);
+}
+
+function playNextAyah(btn) {
+  if (!currentAyahs || currentAyahIndex >= currentAyahs.length) {
+    handleRangeOrSurahEnd(btn);
+    return;
+  }
+
+  const rangeVal = playbackSettings.range;
+  const maxRangeAyahs = (rangeVal === 'full') ? currentAyahs.length : parseInt(rangeVal);
+  if (ayahsPlayedInRange >= maxRangeAyahs) {
+    handleRangeOrSurahEnd(btn);
+    return;
+  }
+
+  const ayahData = currentAyahs[currentAyahIndex];
+  const globalNumber = ayahData.number;
+
+  document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+  const ayahEl = document.querySelector(`#surahView .aya-wrapper[data-ayah="${ayahData.numberInSurah}"]`);
+  if (ayahEl) {
+    ayahEl.classList.add('active');
+    ayahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalNumber}.mp3`;
+
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+
+  currentAudio = new Audio(audioUrl);
+  currentAudio.playbackRate = parseFloat(playbackSettings.speed);
+
+  if (btn) btn.classList.add('playing');
+
+  currentAudio.onended = () => {
+    const ayahRepeatSetting = playbackSettings.ayahRepeat;
+    const ayahRepeatMax = (ayahRepeatSetting === 'once') ? 1 : parseInt(ayahRepeatSetting);
+
+    ayahRepeatCount++;
+    if (ayahRepeatCount < ayahRepeatMax) {
+      currentAudio.currentTime = 0;
+      currentAudio.playbackRate = parseFloat(playbackSettings.speed);
+      currentAudio.play().catch(() => {});
+    } else {
+      ayahRepeatCount = 0;
+      currentAyahIndex++;
+      ayahsPlayedInRange++;
+      playNextAyah(btn);
+    }
+  };
+
+  currentAudio.onerror = () => {
+    console.error(`Failed to play Ayah ${globalNumber}`);
+    currentAyahIndex++;
+    ayahsPlayedInRange++;
+    playNextAyah(btn);
+  };
+
+  currentAudio.play().catch((e) => {
+    console.warn("Audio play interrupted or failed", e);
+  });
+}
+
+function handleRangeOrSurahEnd(btn) {
+  const maxRangeRepeat = parseInt(playbackSettings.repeat);
+
+  rangeRepeatCount++;
+  if (maxRangeRepeat === 0 || rangeRepeatCount < maxRangeRepeat) {
+    currentAyahIndex = startAyahIndex;
+    ayahsPlayedInRange = 0;
+    ayahRepeatCount = 0;
+    playNextAyah(btn);
+  } else {
+    stopAudio();
+    if (btn) btn.classList.remove('playing');
+  }
 }
 
 /* ====================== SURAH LIST ====================== */
@@ -307,8 +329,10 @@ function renderSurahList() {
   const container = $('#surahList');
   container.innerHTML = SURAH_NAMES.map((s,i) => `
     <div class="surah-card" data-surah="${i+1}">
-      <div class="surah-num">${String(i+1).padStart(3,'0')}</div>
-      <div class="surah-arabic">${s.ar}</div>
+      <div class="surah-card-header">
+        <span class="surah-num">${String(i+1).padStart(3,'0')}</span>
+        <span class="surah-arabic">${s.ar}</span>
+      </div>
       <div class="surah-bn">${s.bn}</div>
       <div class="surah-en">${s.en}</div>
       <div class="surah-aya-count">${s.ayas} আয়াত</div>
@@ -386,22 +410,27 @@ async function openSurah(n) {
       if (e.target.closest('.surah-play-btn')) return;
       view.querySelectorAll('.aya-wrapper.selected').forEach(a => a.classList.remove('selected'));
       el.classList.add('selected');
+
+      if (currentPlayingSurah === n) {
+        const playBtn = document.querySelector('#surahView .surah-play-btn');
+        startAyahIndex = parseInt(el.dataset.ayah) - 1;
+        currentAyahIndex = startAyahIndex;
+        ayahsPlayedInRange = 0;
+        ayahRepeatCount = 0;
+        el.classList.remove('selected');
+        playNextAyah(playBtn);
+      }
     });
   });
 }
 
 function closeSurah() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
-  currentPlayingSurah = null;
+  stopAudio();
   currentSurah = null;
   currentAyahs = null;
   const view = $('#surahView');
   view.classList.remove('active');
   $('main').style.display = 'block';
-  document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
 }
 
 /* ====================== SETTINGS ====================== */
@@ -470,6 +499,29 @@ function resetDefaults() {
   $('#speedValue').textContent = '1.0x';
 }
 
+/* ====================== SEARCH FILTER ====================== */
+function filterSurahs() {
+  const query = $('#surahSearch').value.toLowerCase().trim();
+  const cards = $$('.surah-card');
+  cards.forEach(card => {
+    const surahNum = card.dataset.surah;
+    const nameAr = card.querySelector('.surah-arabic').textContent.toLowerCase();
+    const nameBn = card.querySelector('.surah-bn').textContent.toLowerCase();
+    const nameEn = card.querySelector('.surah-en').textContent.toLowerCase();
+    
+    const matches = surahNum.includes(query) || 
+                    nameAr.includes(query) || 
+                    nameBn.includes(query) || 
+                    nameEn.includes(query);
+                    
+    if (matches) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
 /* ====================== INIT ====================== */
 async function init() {
   // Load page/ruku relations
@@ -493,6 +545,7 @@ window.stepRepeat = stepRepeat;
 window.stepAyahRepeat = stepAyahRepeat;
 window.stepSpeed = stepSpeed;
 window.resetDefaults = resetDefaults;
+window.filterSurahs = filterSurahs;
 
 document.addEventListener('DOMContentLoaded', init);
 })();

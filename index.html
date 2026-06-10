@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#001e32">
+<meta name="theme-color" content="#06100e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Quran Majid">
@@ -24,6 +24,10 @@
   </header>
 
   <main>
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="surahSearch" placeholder="সূরা খুঁজুন (Search by name or number)..." oninput="filterSurahs()">
+    </div>
     <div id="surahList"></div>
   </main>
   <div id="surahView"></div>

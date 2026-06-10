@@ -6,7 +6,8 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './style.v3.css',
-  './app.v3.js'
+  './app.v3.js',
+  './PDMS_Saleem_QuranFont.ttf'
 ];
 
 self.addEventListener('install', (event) => {
