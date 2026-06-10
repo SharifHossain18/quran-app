@@ -995,6 +995,8 @@ async function openJuz(n) {
   });
 }
 
+
+
 function closeJuz() {
   stopAudio();
   currentJuz = null;
@@ -1170,7 +1172,7 @@ window.playJuz = playJuz;
 const AUDIO_CACHE_NAME = 'quran-audio-cache';
 
 function toBengaliNum(num) {
-  const d = ['\u09E6','\u09E7','\u09E8','\u09E9','\u09EA','\u09EB','\u09EC','\u09ED','\u09EE','\u09EF'];
+  const d = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
   return String(num).split('').map(ch => d[+ch] !== undefined ? d[+ch] : ch).join('');
 }
 
@@ -1207,15 +1209,15 @@ async function updateDownloadButtonState(surahNum, btn) {
   if (!btn) return;
   const cached = await checkSurahAudioCached(surahNum);
   if (cached) {
-    btn.innerHTML = `<span class="dl-success-icon">\u2713<\/span>`;
+    btn.innerHTML = '<span class="dl-success-icon">✓</span>';
     btn.classList.add('downloaded');
     btn.classList.remove('downloading');
-    btn.title = '\u0985\u09A1\u09BF\u0993 \u09A1\u09BE\u0989\u09A8\u09B2\u09CB\u09A1 \u09B9\u09AF\u09BC\u09C7\u099B\u09C7 (ড়\u09BF\u09B2\u09BF\u099F \u0995\u09B0\u09A4\u09C7 \u0995\u09CD\u09B2\u09BF\u0995 \u0995\u09B0\u09C1\u09A8)';
+    btn.title = 'অডিও ডাউনলোড হয়েছে — ডিলিট করতে ক্লিক করুন';
     btn.disabled = false;
   } else {
-    btn.innerHTML = `<span class="dl-arrow-icon">\u2B07<\/span>`;
+    btn.innerHTML = '<span class="dl-arrow-icon">⬇</span>';
     btn.classList.remove('downloaded', 'downloading');
-    btn.title = '\u0985\u09A1\u09BF\u0993 \u0985\u09AB\u09B2\u09BE\u0987\u09A8\u09C7 \u09B8\u09C7\u09AD \u0995\u09B0\u09C1\u09A8';
+    btn.title = 'অডিও অফলাইনে সেভ করুন';
     btn.disabled = false;
   }
 }
@@ -1224,7 +1226,7 @@ async function startDownloadSurahAudio(surahNum, btn) {
   btn.disabled = true;
   btn.classList.add('downloading');
   btn.classList.remove('downloaded');
-  btn.innerHTML = `<span class="dl-progress">০%<\/span>`;
+  btn.innerHTML = '<span class="dl-progress">০%</span>';
 
   try {
     const localRes = await fetch(`./data/surahs/${surahNum}.json`);
@@ -1242,7 +1244,7 @@ async function startDownloadSurahAudio(surahNum, btn) {
       await Promise.all(chunk.map(async (a) => {
         const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`;
         if (!(await cache.match(url))) {
-          const resp = await fetch(url);
+          const resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
           if (resp.ok) await cache.put(url, resp);
         }
         done++;
@@ -1255,7 +1257,7 @@ async function startDownloadSurahAudio(surahNum, btn) {
     await updateDownloadButtonState(surahNum, btn);
   } catch(e) {
     console.error('Audio download failed', e);
-    alert('\u0985\u09A1\u09BF\u0993 \u09A1\u09BE\u0989\u09A8\u09B2\u09CB\u09A1 \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5 \u09B9\u09AF\u09BC\u09C7\u099B\u09C7\u0964 \u0987\u09A8\u09CD\u099F\u09BE\u09B0\u09A8\u09C7\u099F \u09B8\u0982\u09AF\u09CB\u0997 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE \u0995\u09B0\u09C1\u09A8\u0964');
+    alert('অডিও ডাউনলোড ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।');
     await updateDownloadButtonState(surahNum, btn);
   }
 }
@@ -1263,7 +1265,7 @@ async function startDownloadSurahAudio(surahNum, btn) {
 async function toggleDownloadSurah(surahNum, btn) {
   const isCached = await checkSurahAudioCached(surahNum);
   if (isCached) {
-    if (confirm('\u098F\u0987 \u09B8\u09C2\u09B0\u09BE\u09B0 \u09A1\u09BE\u0989\u09A8\u09B2\u09CB\u09A1 \u0995\u09B0\u09BE \u0985\u09A1\u09BF\u0993 \u09AE\u09C1\u099B\u09C7 \u09AB\u09C7\u09B2\u09A4\u09C7 \u099A\u09BE\u09A8?')) {
+    if (confirm('এই সূরার ডাউনলোড করা অডিও মুছে ফেলতে চান?')) {
       await deleteSurahAudioCache(surahNum);
       await updateDownloadButtonState(surahNum, btn);
     }
