@@ -220,11 +220,17 @@ async function loadJSON(url, fallback) {
 }
 
 async function loadPageRelation() {
-  const data = await loadJSON('https://read.quranmajeed.com/JSONFiles/pageRelation.json', null);
+  let data = await loadJSON('./data/pageRelation.json', null);
+  if (!data) {
+    data = await loadJSON('https://read.quranmajeed.com/JSONFiles/pageRelation.json', null);
+  }
   if (data) pageRelation = data;
 }
 async function loadRukuRelation() {
-  const data = await loadJSON('https://read.quranmajeed.com/JSONFiles/rukuSurahRelation.json', null);
+  let data = await loadJSON('./data/rukuSurahRelation.json', null);
+  if (!data) {
+    data = await loadJSON('https://read.quranmajeed.com/JSONFiles/rukuSurahRelation.json', null);
+  }
   if (data) rukuRelation = data;
 }
 
@@ -426,13 +432,22 @@ async function openSurah(n, highlightAyah = null) {
 
   if (!arData || !bnData) {
     try {
-      const [arRes, bnRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/surah/${n}/quran-uthmani`),
-        fetch(`https://api.alquran.cloud/v1/surah/${n}/bn.bengali`)
-      ]);
-      arData = arRes.ok ? (await arRes.json()).data : null;
-      bnData = bnRes.ok ? (await bnRes.json()).data : null;
-      
+      // Try local JSON first
+      const localRes = await fetch(`./data/surahs/${n}.json`);
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        arData = localData.arData;
+        bnData = localData.bnData;
+      } else {
+        // Fallback to online API
+        const [arRes, bnRes] = await Promise.all([
+          fetch(`https://api.alquran.cloud/v1/surah/${n}/quran-uthmani`),
+          fetch(`https://api.alquran.cloud/v1/surah/${n}/bn.bengali`)
+        ]);
+        arData = arRes.ok ? (await arRes.json()).data : null;
+        bnData = bnRes.ok ? (await bnRes.json()).data : null;
+      }
+
       if (arData && bnData) {
         await setCache(STORE_NAME_SURAHS, n, { arData, bnData });
       }
@@ -858,13 +873,22 @@ async function openJuz(n) {
 
   if (!arData || !bnData) {
     try {
-      const [arRes, bnRes] = await Promise.all([
-        fetch(`https://api.alquran.cloud/v1/juz/${n}/quran-uthmani`),
-        fetch(`https://api.alquran.cloud/v1/juz/${n}/bn.bengali`)
-      ]);
-      arData = arRes.ok ? (await arRes.json()).data : null;
-      bnData = bnRes.ok ? (await bnRes.json()).data : null;
-      
+      // Try local JSON first
+      const localRes = await fetch(`./data/juz/${n}.json`);
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        arData = localData.arData;
+        bnData = localData.bnData;
+      } else {
+        // Fallback to online API
+        const [arRes, bnRes] = await Promise.all([
+          fetch(`https://api.alquran.cloud/v1/juz/${n}/quran-uthmani`),
+          fetch(`https://api.alquran.cloud/v1/juz/${n}/bn.bengali`)
+        ]);
+        arData = arRes.ok ? (await arRes.json()).data : null;
+        bnData = bnRes.ok ? (await bnRes.json()).data : null;
+      }
+
       if (arData && bnData) {
         await setCache(STORE_NAME_JUZ, n, { arData, bnData });
       }
