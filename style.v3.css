@@ -715,6 +715,66 @@ main { padding: 16px; }
   letter-spacing: 0.3px;
 }
 
+/* Download button inside rnb pill */
+.rnb-dl-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(203, 161, 53, 0.25) !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease !important;
+  color: var(--color-gold-light) !important;
+  font-size: 11px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.rnb-dl-btn:hover {
+  background: rgba(203, 161, 53, 0.25) !important;
+  border-color: var(--color-gold) !important;
+  transform: scale(1.08) !important;
+}
+
+.rnb-dl-btn.downloading {
+  border-color: var(--color-gold) !important;
+  background: rgba(203, 161, 53, 0.15) !important;
+  width: auto !important;
+  border-radius: 12px !important;
+  padding: 0 7px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: var(--color-white) !important;
+}
+
+.rnb-dl-btn.downloaded {
+  background: rgba(39, 174, 96, 0.15) !important;
+  border-color: rgba(39, 174, 96, 0.5) !important;
+  color: #2ecc71 !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+}
+
+.rnb-dl-btn.downloaded:hover {
+  background: rgba(231, 76, 60, 0.15) !important;
+  border-color: rgba(231, 76, 60, 0.5) !important;
+  color: #e74c3c !important;
+}
+
+.rnb-dl-btn.downloaded:hover .dl-success-icon {
+  display: none !important;
+}
+
+.rnb-dl-btn.downloaded:hover::after {
+  content: "🗑" !important;
+  font-size: 11px !important;
+}
+
 /* Play button inside rnb pill */
 .rnb-play-btn {
   background: var(--color-gold) !important;
