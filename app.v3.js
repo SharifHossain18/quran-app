@@ -337,7 +337,9 @@ async function playNextAyah(btn) {
     ayahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalNumber}.mp3`;
+  const sStr = String(surahNum).padStart(3, '0');
+  const aStr = String(ayahData.numberInSurah).padStart(3, '0');
+  const audioUrl = `https://www.everyayah.com/data/Alafasy_128kbps/${sStr}${aStr}.mp3`;
 
   if (currentAudio) {
     currentAudio.pause();
@@ -1183,8 +1185,10 @@ async function checkSurahAudioCached(surahNum) {
     const localData = await localRes.json();
     const ayahs = localData.arData.ayahs;
     const cache = await caches.open(AUDIO_CACHE_NAME);
+    const sStr = String(surahNum).padStart(3, '0');
     for (const a of ayahs) {
-      const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`;
+      const aStr = String(a.numberInSurah).padStart(3, '0');
+      const url = `https://www.everyayah.com/data/Alafasy_128kbps/${sStr}${aStr}.mp3`;
       const match = await cache.match(url);
       if (!match) return false;
     }
@@ -1199,8 +1203,11 @@ async function deleteSurahAudioCache(surahNum) {
     const localData = await localRes.json();
     const ayahs = localData.arData.ayahs;
     const cache = await caches.open(AUDIO_CACHE_NAME);
+    const sStr = String(surahNum).padStart(3, '0');
     for (const a of ayahs) {
-      await cache.delete(`https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`);
+      const aStr = String(a.numberInSurah).padStart(3, '0');
+      const url = `https://www.everyayah.com/data/Alafasy_128kbps/${sStr}${aStr}.mp3`;
+      await cache.delete(url);
     }
   } catch(e) { console.error('Delete audio cache failed', e); }
 }
@@ -1238,11 +1245,13 @@ async function startDownloadSurahAudio(surahNum, btn) {
     let done = 0;
     const total = ayahs.length;
     const chunkSize = 5;
+    const sStr = String(surahNum).padStart(3, '0');
 
     for (let i = 0; i < total; i += chunkSize) {
       const chunk = ayahs.slice(i, i + chunkSize);
       await Promise.all(chunk.map(async (a) => {
-        const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`;
+        const aStr = String(a.numberInSurah).padStart(3, '0');
+        const url = `https://www.everyayah.com/data/Alafasy_128kbps/${sStr}${aStr}.mp3`;
         if (!(await cache.match(url))) {
           const resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
           if (resp.ok) await cache.put(url, resp);
