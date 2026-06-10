@@ -24,11 +24,31 @@
   </header>
 
   <main>
-    <div class="search-container">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="surahSearch" placeholder="সূরা খুঁজুন (Search by name or number)..." oninput="filterSurahs()">
+    <!-- Verse of the Day -->
+    <div id="dailyVerseContainer"></div>
+
+    <!-- Navigation Tabs -->
+    <div class="home-tabs">
+      <button id="tabSurah" class="tab-btn active" onclick="switchHomeTab('surah')">সূরা (Surahs)</button>
+      <button id="tabJuz" class="tab-btn" onclick="switchHomeTab('juz')">পারা (Juz)</button>
     </div>
+
+    <!-- Search and Jump Row -->
+    <div class="search-row">
+      <div class="search-container" id="surahSearchContainer">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="surahSearch" placeholder="সূরা খুঁজুন (Search by name/number)..." oninput="filterSurahs()">
+      </div>
+      <div class="search-container" id="ayahJumpContainer">
+        <span class="search-icon">📖</span>
+        <input type="text" id="ayahJumpInput" placeholder="আয়াতে যান (e.g. 2:255)" onkeydown="if(event.key === 'Enter') jumpToAyah()">
+        <button class="jump-btn" onclick="jumpToAyah()">Go</button>
+      </div>
+    </div>
+
+    <!-- Content Lists -->
     <div id="surahList"></div>
+    <div id="juzList" class="hidden"></div>
   </main>
   <div id="surahView"></div>
 

@@ -124,10 +124,70 @@ const RECITERS = [
   {id:'Mishari-Rashid',name:'Mishari Rashid Al-Afasy',bn:'মিশারি রশিদ'},
 ];
 
+/* ====================== INDEXEDDB CACHE ====================== */
+const DB_NAME = 'QuranAppDB';
+const DB_VERSION = 1;
+const STORE_NAME_SURAHS = 'surahs';
+const STORE_NAME_JUZ = 'juz';
+
+let dbInstance = null;
+
+function initDB() {
+  if (dbInstance) return Promise.resolve(dbInstance);
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      resolve(dbInstance);
+    };
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME_SURAHS)) {
+        db.createObjectStore(STORE_NAME_SURAHS, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_NAME_JUZ)) {
+        db.createObjectStore(STORE_NAME_JUZ, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+function getCache(storeName, id) {
+  return initDB().then(db => {
+    return new Promise((resolve) => {
+      const transaction = db.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      const request = store.get(id);
+      request.onerror = () => resolve(null);
+      request.onsuccess = () => {
+        if (request.result) {
+          resolve(request.result.data);
+        } else {
+          resolve(null);
+        }
+      };
+    });
+  }).catch(() => null);
+}
+
+function setCache(storeName, id, data) {
+  return initDB().then(db => {
+    return new Promise((resolve) => {
+      const transaction = db.transaction(storeName, 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const request = store.put({ id, data, timestamp: Date.now() });
+      request.onerror = () => resolve();
+      request.onsuccess = () => resolve();
+    });
+  }).catch(() => {});
+}
+
 /* ====================== STATE ====================== */
 let pageRelation = null;
 let rukuRelation = null;
 let currentSurah = null;
+let currentJuz = null;
 let currentAyahs = null;
 let activeAudio = null;
 let currentSurahAudio = null;
@@ -193,6 +253,7 @@ function getRukuCount(surah) {
 /* ====================== AUDIO ====================== */
 let currentAudio = null;
 let currentPlayingSurah = null;
+let currentPlayingJuz = null;
 let currentAyahIndex = 0;
 let startAyahIndex = 0;
 let ayahsPlayedInRange = 0;
@@ -205,6 +266,7 @@ function stopAudio() {
     currentAudio = null;
   }
   currentPlayingSurah = null;
+  currentPlayingJuz = null;
   document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
 }
 
@@ -262,7 +324,8 @@ function playNextAyah(btn) {
   const globalNumber = ayahData.number;
 
   document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
-  const ayahEl = document.querySelector(`#surahView .aya-wrapper[data-ayah="${ayahData.numberInSurah}"]`);
+  const surahNum = (ayahData.surah && ayahData.surah.number) ? ayahData.surah.number : currentPlayingSurah;
+  const ayahEl = document.querySelector(`#surahView .aya-wrapper[data-surah="${surahNum}"][data-ayah="${ayahData.numberInSurah}"]`);
   if (ayahEl) {
     ayahEl.classList.add('active');
     ayahEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -345,8 +408,9 @@ function renderSurahList() {
 }
 
 /* ====================== SURAH VIEW ====================== */
-async function openSurah(n) {
+async function openSurah(n, highlightAyah = null) {
   currentSurah = n;
+  currentJuz = null;
   const main = $('main');
   const view = $('#surahView');
   view.innerHTML = '<div class="loading">আয়াত আনিতেছে...</div>';
@@ -355,13 +419,27 @@ async function openSurah(n) {
   window.scrollTo(0,0);
 
   const s = SURAH_NAMES[n-1];
-  const [arRes, bnRes] = await Promise.all([
-    fetch(`https://api.alquran.cloud/v1/surah/${n}/quran-uthmani`),
-    fetch(`https://api.alquran.cloud/v1/surah/${n}/bn.bengali`)
-  ]);
+  
+  let cached = await getCache(STORE_NAME_SURAHS, n);
+  let arData = cached ? cached.arData : null;
+  let bnData = cached ? cached.bnData : null;
 
-  const arData = arRes.ok ? (await arRes.json()).data : null;
-  const bnData = bnRes.ok ? (await bnRes.json()).data : null;
+  if (!arData || !bnData) {
+    try {
+      const [arRes, bnRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/surah/${n}/quran-uthmani`),
+        fetch(`https://api.alquran.cloud/v1/surah/${n}/bn.bengali`)
+      ]);
+      arData = arRes.ok ? (await arRes.json()).data : null;
+      bnData = bnRes.ok ? (await bnRes.json()).data : null;
+      
+      if (arData && bnData) {
+        await setCache(STORE_NAME_SURAHS, n, { arData, bnData });
+      }
+    } catch(e) {
+      console.error("Fetch Surah failed", e);
+    }
+  }
 
   if (!arData) {
     view.innerHTML = '<div class="error">আয়াত লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</div>';
@@ -404,6 +482,16 @@ async function openSurah(n) {
 
   html += '</div>';
   view.innerHTML = html;
+
+  if (highlightAyah) {
+    const el = view.querySelector(`.aya-wrapper[data-ayah="${highlightAyah}"]`);
+    if (el) {
+      el.classList.add('selected');
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }
 
   view.querySelectorAll('.aya-wrapper').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -522,6 +610,441 @@ function filterSurahs() {
   });
 }
 
+/* ====================== JUZ / CURATED VERSES DATA ====================== */
+const CURATED_VERSES = [
+  {
+    surah: 2,
+    ayah: 152,
+    surahName: 'আল-বাকারা',
+    ar: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
+    bn: 'অতএব তোমরা আমাকে স্মরণ করো, আমিও তোমাদের স্মরণ করব। আর আমার প্রতি কৃতজ্ঞতা প্রকাশ করো, অকৃতজ্ঞ হয়ো না।',
+    en: 'So remember Me; I will remember you. And be grateful to Me and do not deny Me.'
+  },
+  {
+    surah: 2,
+    ayah: 186,
+    surahName: 'আল-বাকারা',
+    ar: 'وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ ۖ أُجِيبُ دَعْوَةَ الدَّاعِ إِذَا دَعَانِ',
+    bn: 'আর যখন আমার বান্দাগণ আমার সম্পর্কে তোমাকে জিজ্ঞাসা করে, নিশ্চয় আমি নিকটে। আমি আহবানকারীর ডাকে সাড়া দেই যখন সে আমাকে আহবান করে।',
+    en: 'And when My servants ask you, [O Muhammad], concerning Me - indeed I am near. I respond to the invocation of the supplicant when he calls upon Me.'
+  },
+  {
+    surah: 2,
+    ayah: 286,
+    surahName: 'আল-বাকারা',
+    ar: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
+    bn: 'আল্লাহ কাউকে তার সাধ্যাতীত কোন কাজের ভার দেন না।',
+    en: 'Allah does not charge a soul except [with that within] its capacity.'
+  },
+  {
+    surah: 3,
+    ayah: 139,
+    surahName: 'আলে-ইমরান',
+    ar: 'وَلَا تَهِنُوا وَلَا تَحْزَنُوا وَأَنْتُمُ الْأَعْلَوْنَ إِنْ كُنْتُمْ مُؤْمِنِينَ',
+    bn: 'তোমরা হীনবল হয়ো না এবং চিন্তিত হয়ো না, তোমরাই বিজয়ী হবে যদি তোমরা মুমিন হও।',
+    en: 'So do not weaken and do not grieve, and you will be superior if you are [true] believers.'
+  },
+  {
+    surah: 3,
+    ayah: 159,
+    surahName: 'আলে-ইমরান',
+    ar: 'فَتَوَكَّلْ عَلَى اللَّهِ ۖ إِنَّ اللَّهَ يُحِبُّ الْمُتَوَكِّلِينَ',
+    bn: 'অতঃপর আল্লাহর উপর ভরসা করুন। নিশ্চয় আল্লাহ ভরসাকারীদের ভালোবাসেন।',
+    en: 'Then rely upon Allah; indeed, Allah loves those who rely [upon Him].'
+  },
+  {
+    surah: 8,
+    ayah: 2,
+    surahName: 'আল-আনফাল',
+    ar: 'إِنَّمَا الْمُؤْمِنُونَ الَّذِينَ إِذَا ذُكِرَ اللَّهُ وَجِلَتْ قُلُوبُهُمْ',
+    bn: 'মুমিন তো তারাই, যাদের অন্তর আল্লাহকে স্মরণ করার সময় প্রকম্পিত হয়।',
+    en: 'The believers are only those who, when Allah is mentioned, their hearts feel fear...'
+  },
+  {
+    surah: 9,
+    ayah: 129,
+    surahName: 'আত-তাওবাহ্',
+    ar: 'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ ۖ عَلَيْهِ تَوَكَّلْتُ ۖ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ',
+    bn: 'আমার জন্য আল্লাহই যথেষ্ট, তিনি ব্যতীত কোন উপাস্য নেই। আমি তাঁরই ওপর ভরসা করেছি এবং তিনি মহান আরশের অধিপতি।',
+    en: 'Sufficient for me is Allah; there is no deity except Him. On Him I have relied, and He is the Lord of the Great Throne.'
+  },
+  {
+    surah: 13,
+    ayah: 28,
+    surahName: 'আর-রাদ',
+    ar: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+    bn: 'জেনে রেখো, আল্লাহর স্মরণেই কেবল হৃদয় শান্তি পায়।',
+    en: 'Unquestionably, by the remembrance of Allah hearts are assured.'
+  },
+  {
+    surah: 14,
+    ayah: 7,
+    surahName: 'ইব্রাহীম',
+    ar: 'لَئِنْ شَكَرْتُمْ لَأَزِيدَنَّكُمْ',
+    bn: 'যদি তোমরা কৃতজ্ঞতা স্বীকার করো, তবে আমি অবশ্যই তোমাদের বাড়িয়ে দেব।',
+    en: 'If you are grateful, I will surely increase you [in favor].'
+  },
+  {
+    surah: 17,
+    ayah: 82,
+    surahName: 'বনী-ইসরাঈল',
+    ar: 'وَنُنَزِّلُ مِنَ الْقُرْآنِ مَا هُوَ شِفَاءٌ وَرَحْمَةٌ لِلْمُؤْمِنِينَ',
+    bn: 'আমি কুরআনে এমন জিনিস অবতীর্ণ করি যা মুমিনদের জন্য আরোগ্য ও রহমতস্বরূপ।',
+    en: 'And We send down of the Quran that which is a healing and mercy for the believers.'
+  },
+  {
+    surah: 20,
+    ayah: 114,
+    surahName: 'ত্বোয়া-হা',
+    ar: 'وَقُلْ رَبِّ زِدْنِي عِلْمًا',
+    bn: 'এবং বলুন, হে আমাদের পালনকর্তা! আমার জ্ঞান বৃদ্ধি করে দিন।',
+    en: 'And say, "My Lord, increase me in knowledge."'
+  },
+  {
+    surah: 21,
+    ayah: 87,
+    surahName: 'আল-আম্বিয়া',
+    ar: 'لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ',
+    bn: 'আপনি ব্যতীত কোন উপাস্য নেই; আপনি পবিত্র! নিশ্চয়ই আমি অপরাধীদের অন্তর্ভুক্ত ছিলাম।',
+    en: 'There is no deity except You; exalted are You. Indeed, I have been of the wrongdoers.'
+  },
+  {
+    surah: 25,
+    ayah: 74,
+    surahName: 'আল-ফুরকান',
+    ar: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا',
+    bn: 'হে আমাদের পালনকর্তা, আমাদের স্ত্রীদের পক্ষ থেকে এবং আমাদের সন্তানদের পক্ষ থেকে আমাদের জন্যে চোখের শীতলতা দান কর এবং আমাদেরকে পরহেযগারদের জন্যে অনুকরণযোগ্য কর।',
+    en: 'Our Lord, grant us from among our wives and offspring comfort to our eyes and make us an example for the righteous.'
+  },
+  {
+    surah: 26,
+    ayah: 80,
+    surahName: 'আশ-শুআরা',
+    ar: 'وَإِذَا مَرِضْتُ فَهُوَ يَشْفِينِ',
+    bn: 'এবং যখন আমি অসুস্থ হই, তখন তিনিই আমাকে আরোগ্য দান করেন।',
+    en: 'And when I am ill, it is He who cures me.'
+  },
+  {
+    surah: 39,
+    ayah: 53,
+    surahName: 'আয-যুমার',
+    ar: 'قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنْفُسِهِمْ لَا تَقْنَطُوا مِنْ رَحْمَةِ اللَّهِ ۚ إِنَّ اللَّهَ يَغْفِرُ الذُّنُوبَ جَمِيعًا',
+    bn: 'বলুন, হে আমার বান্দাগণ যারা নিজেদের ওপর জুলুম করেছ, তোমরা আল্লাহর রহমত থেকে নিরাশ হয়ো না। নিশ্চয়ই আল্লাহ সমস্ত গুনাহ ক্ষমা করে দেন।',
+    en: 'Say, "O My servants who have transgressed against themselves [by sinning], do not despair of the mercy of Allah. Indeed, Allah forgives all sins."'
+  },
+  {
+    surah: 94,
+    ayah: 5,
+    surahName: 'আল-ইনশিরাহ',
+    ar: 'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا',
+    bn: 'নিশ্চয়ই কষ্টের সাথেই স্বস্তি রয়েছে।',
+    en: 'For indeed, with hardship [will be] ease.'
+  }
+];
+
+const JUZ_LIST = [
+  { id: 1, name: 'পারা ১', start: 'আল-ফাতিহা ১:১', end: 'আল-বাকারা ২:১৪১' },
+  { id: 2, name: 'পারা ২', start: 'আল-বাকারা ২:১৪২', end: 'আল-বাকারা ২:২৫২' },
+  { id: 3, name: 'পারা ৩', start: 'আল-বাকারা ২:২৫৩', end: 'আলে-ইমরান ৩:৯২' },
+  { id: 4, name: 'পারা ৪', start: 'আলে-ইমরান ৩:৯৩', end: 'আন-নিসা ৪:২৩' },
+  { id: 5, name: 'পারা ৫', start: 'আন-নিসা ৪:২৪', end: 'আন-নিসা ৪:১৪৭' },
+  { id: 6, name: 'পারা ৬', start: 'আন-নিসা ৪:১৪৮', end: 'আল-মায়িদাহ ৫:৮১' },
+  { id: 7, name: 'পারা ৭', start: 'আল-মায়িদাহ ৫:৮২', end: 'আল-আনআম ৬:১১০' },
+  { id: 8, name: 'পারা ৮', start: 'আল-আনআম ৬:১১১', end: 'আল-আরাফ ৭:৮৭' },
+  { id: 9, name: 'পারা ৯', start: 'আল-আরাফ ৭:৮৮', end: 'আল-আনফাল ৮:৪০' },
+  { id: 10, name: 'পারা ১০', start: 'আল-আনফাল ৮:৪১', end: 'আত-তাওবাহ্ ৯:৯২' },
+  { id: 11, name: 'পারা ১১', start: 'আত-তাওবাহ্ ৯:৯৩', end: 'হুদ ১১:৫' },
+  { id: 12, name: 'পারা ১২', start: 'হুদ ১১:৬', end: 'ইউসুফ ১২:৫২' },
+  { id: 13, name: 'পারা ১৩', start: 'ইউসুফ ১২:৫৩', end: 'ইব্রাহীম ১৪:৫২' },
+  { id: 14, name: 'পারা ১৪', start: 'আল-হিজর ১৫:১', end: 'আন-নাহল ১৬:১২৮' },
+  { id: 15, name: 'পারা ১৫', start: 'বনী-ইসরাঈল ১৭:১', end: 'আল-কাহফ ১৮:৭৪' },
+  { id: 16, name: 'পারা ১৬', start: 'আল-কাহফ ১৮:৭৫', end: 'ত্বোয়া-হা ২০:১৩৫' },
+  { id: 17, name: 'পারা ১৭', start: 'আল-আম্বিয়া ২১:১', end: 'আল-হাজ্জ্ব ২২:৭৮' },
+  { id: 18, name: 'পারা ১৮', start: 'আল-মুমিনুন ২৩:১', end: 'আল-ফুরকান ২৫:২০' },
+  { id: 19, name: 'পারা ১৯', start: 'আল-ফুরকান ২৫:২১', end: 'আন-নামল ২৭:৫৫' },
+  { id: 20, name: 'পারা ২০', start: 'আন-নামল ২৭:৫৬', end: 'আল-আনকাবুত ২৯:৪৫' },
+  { id: 21, name: 'পারা ২১', start: 'আল-আনকাবুত ২৯:৪৬', end: 'আল-আহযাব ৩৩:৩০' },
+  { id: 22, name: 'পারা ২২', start: 'আল-আহযাব ৩৩:৩১', end: 'ইয়াসীন ৩৬:২৭' },
+  { id: 23, name: 'পারা ২৩', start: 'ইয়াসীন ৩৬:২৮', end: 'আয-যুমার ৩৯:৩১' },
+  { id: 24, name: 'পারা ২৪', start: 'আয-যুমার ৩৯:৩২', end: 'হা-মীম সাজদাহ ৪১:৪৬' },
+  { id: 25, name: 'পারা ২৫', start: 'হা-মীম সাজদাহ ৪১:৪৭', end: 'আল-জাসিয়াহ ৪৫:৩৭' },
+  { id: 26, name: 'পারা ২৬', start: 'আল-আহকাফ ৪৬:১', end: 'আয-যারিয়াত ৫১:৩০' },
+  { id: 27, name: 'পারা ২৭', start: 'আয-যারিয়াত ৫১:৩১', end: 'আল-হাদীদ ৫৭:২৯' },
+  { id: 28, name: 'পারা ২৮', start: 'আল-মুজাদালাহ ৫৮:১', end: 'আত-তাহরীম ৬৬:১২' },
+  { id: 29, name: 'পারা ২৯', start: 'আল-মুলক ৬৭:১', end: 'আল-মুরসালাত ৭৭:৫০' },
+  { id: 30, name: 'পারা ৩০', start: 'আন-নাবা ৭৮:১', end: 'আন-নাস ১১৪:৬' }
+];
+
+/* ====================== JUZ / PARA NAVIGATION ====================== */
+function renderJuzList() {
+  const container = $('#juzList');
+  if (!container) return;
+  container.innerHTML = JUZ_LIST.map(j => `
+    <div class="surah-card" data-juz="${j.id}">
+      <div class="surah-card-header">
+        <span class="surah-num">${String(j.id).padStart(2,'0')}</span>
+        <span class="surah-arabic">الجزء ${j.id}</span>
+      </div>
+      <div class="surah-bn">${j.name}</div>
+      <div class="surah-en" style="font-size:11px; margin-top:4px;">শুরু: ${j.start}</div>
+      <div class="surah-aya-count" style="font-size:10px; margin-top:6px;">শেষ: ${j.end}</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.surah-card').forEach(el => {
+    el.addEventListener('click', () => openJuz(Number(el.dataset.juz)));
+  });
+}
+
+async function openJuz(n) {
+  currentJuz = n;
+  currentSurah = null;
+  const main = $('main');
+  const view = $('#surahView');
+  view.innerHTML = '<div class="loading">আয়াত আনিতেছে...</div>';
+  view.classList.add('active');
+  main.style.display = 'none';
+  window.scrollTo(0,0);
+
+  let cached = await getCache(STORE_NAME_JUZ, n);
+  let arData = cached ? cached.arData : null;
+  let bnData = cached ? cached.bnData : null;
+
+  if (!arData || !bnData) {
+    try {
+      const [arRes, bnRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/juz/${n}/quran-uthmani`),
+        fetch(`https://api.alquran.cloud/v1/juz/${n}/bn.bengali`)
+      ]);
+      arData = arRes.ok ? (await arRes.json()).data : null;
+      bnData = bnRes.ok ? (await bnRes.json()).data : null;
+      
+      if (arData && bnData) {
+        await setCache(STORE_NAME_JUZ, n, { arData, bnData });
+      }
+    } catch(e) {
+      console.error("Fetch Juz failed", e);
+    }
+  }
+
+  if (!arData) {
+    view.innerHTML = '<div class="error">আয়াত লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।</div>';
+    return;
+  }
+
+  currentAyahs = arData.ayahs;
+
+  let html = `
+    <div class="back-bar">
+      <button class="back-btn" onclick="closeJuz()">\u2190</button>
+      <span><strong>পারা ${n}</strong></span>
+      <div class="back-bar-actions">
+        <button class="surah-play-btn" onclick="event.stopPropagation(); playJuz(${n}, this)"><span class="play-icon"></span></button>
+      </div>
+    </div>
+    <div class="surah-header">
+      <div class="surah-bn">পারা ${n}</div>
+      <div class="surah-info">${arData.ayahs.length} টি আয়াত</div>
+    </div>
+    <div class="ayahs-container">
+  `;
+
+  let lastSurahNum = null;
+
+  arData.ayahs.forEach((a, i) => {
+    const bnAyah = bnData && bnData.ayahs[i] ? bnData.ayahs[i].text : '';
+    const sNum = a.surah.number;
+    
+    if (sNum !== lastSurahNum) {
+      lastSurahNum = sNum;
+      const sName = SURAH_NAMES[sNum - 1];
+      html += `
+        <div class="juz-surah-divider">
+          <span class="juz-surah-divider-bn">${sName.bn}</span>
+          <span class="juz-surah-divider-ar">${a.surah.name}</span>
+        </div>
+        ${sNum > 1 && sNum !== 9 && a.numberInSurah === 1 ? '<div class="bismillah">\u0628\u0650\u0633\u0652\u0645\u0650 \u0627\u0644\u0644\u0651\u064e\u0647\u0650 \u0627\u0644\u0631\u0651\u064e\u062d\u0652\u0645\u064e\u0670\u0646\u0650 \u0627\u0644\u0631\u0651\u064e\u062d\u0650\u064a\u0645\u0650</div>' : ''}
+      `;
+    }
+
+    html += `
+      <div class="aya-wrapper" data-surah="${sNum}" data-ayah="${a.numberInSurah}">
+        <div class="aya-row">
+          <div class="aya-ar-side">
+            <span class="ayah-text">${a.text}</span>
+            <span class="ayah-num-circle">${a.numberInSurah}</span>
+          </div>
+        </div>
+        ${bnAyah ? `<div class="aya-bn-line">${bnAyah}</div>` : ''}
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  view.innerHTML = html;
+
+  view.querySelectorAll('.aya-wrapper').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.surah-play-btn')) return;
+      view.querySelectorAll('.aya-wrapper.selected').forEach(a => a.classList.remove('selected'));
+      el.classList.add('selected');
+
+      if (currentPlayingJuz === n) {
+        const playBtn = document.querySelector('#surahView .surah-play-btn');
+        const surahId = parseInt(el.dataset.surah);
+        const ayahId = parseInt(el.dataset.ayah);
+        const idx = currentAyahs.findIndex(a => a.surah.number === surahId && a.numberInSurah === ayahId);
+        if (idx !== -1) {
+          startAyahIndex = idx;
+          currentAyahIndex = startAyahIndex;
+          ayahsPlayedInRange = 0;
+          ayahRepeatCount = 0;
+          el.classList.remove('selected');
+          playNextAyah(playBtn);
+        }
+      }
+    });
+  });
+}
+
+function closeJuz() {
+  stopAudio();
+  currentJuz = null;
+  currentAyahs = null;
+  const view = $('#surahView');
+  view.classList.remove('active');
+  $('main').style.display = 'block';
+}
+
+function playJuz(juzNum, btn) {
+  closeSettings();
+  if (currentPlayingJuz === juzNum && currentAudio) {
+    if (!currentAudio.paused) {
+      currentAudio.pause();
+      if (btn) btn.classList.remove('playing');
+    } else {
+      currentAudio.playbackRate = parseFloat(playbackSettings.speed);
+      currentAudio.play().then(() => {
+        if (btn) btn.classList.add('playing');
+      }).catch(() => {});
+    }
+    return;
+  }
+
+  stopAudio();
+
+  currentPlayingJuz = juzNum;
+  currentPlayingSurah = null;
+
+  const selectedEl = document.querySelector('#surahView .aya-wrapper.selected');
+  if (selectedEl) {
+    const surahId = parseInt(selectedEl.dataset.surah);
+    const ayahId = parseInt(selectedEl.dataset.ayah);
+    const idx = currentAyahs.findIndex(a => a.surah.number === surahId && a.numberInSurah === ayahId);
+    if (idx !== -1) {
+      startAyahIndex = idx;
+    } else {
+      startAyahIndex = 0;
+    }
+    selectedEl.classList.remove('selected');
+  } else {
+    startAyahIndex = 0;
+  }
+
+  currentAyahIndex = startAyahIndex;
+  ayahsPlayedInRange = 0;
+  rangeRepeatCount = 0;
+  ayahRepeatCount = 0;
+
+  playNextAyah(btn);
+}
+
+/* ====================== HOME TABS SWITCHER ====================== */
+function switchHomeTab(tabName) {
+  const tabSurah = $('#tabSurah');
+  const tabJuz = $('#tabJuz');
+  const surahList = $('#surahList');
+  const juzList = $('#juzList');
+  const surahSearchContainer = $('#surahSearchContainer');
+  const ayahJumpContainer = $('#ayahJumpContainer');
+
+  if (tabName === 'surah') {
+    tabSurah.classList.add('active');
+    tabJuz.classList.remove('active');
+    surahList.classList.remove('hidden');
+    juzList.classList.add('hidden');
+    surahSearchContainer.classList.remove('hidden');
+  } else {
+    tabSurah.classList.remove('active');
+    tabJuz.classList.add('active');
+    surahList.classList.add('hidden');
+    juzList.classList.remove('hidden');
+    surahSearchContainer.classList.add('hidden');
+  }
+}
+
+/* ====================== GO TO AYAH ====================== */
+function parseBengaliNumerals(str) {
+  const bnDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+  return str.replace(/[০-৯]/g, d => bnDigits[d]);
+}
+
+function jumpToAyah() {
+  const input = $('#ayahJumpInput').value.trim();
+  if (!input) return;
+  
+  const normalized = parseBengaliNumerals(input);
+  const parts = normalized.split(/[:\/\s\.\-]/).filter(Boolean);
+  if (parts.length < 2) {
+    alert("সঠিক রেফারেন্স দিন। (যেমন- 2:255)");
+    return;
+  }
+
+  const surahNum = parseInt(parts[0], 10);
+  const ayahNum = parseInt(parts[1], 10);
+
+  if (isNaN(surahNum) || surahNum < 1 || surahNum > 114) {
+    alert("ভুল সূরা নম্বর! ১ থেকে ১১৪ এর মধ্যে দিন।");
+    return;
+  }
+
+  const surahMeta = SURAH_NAMES[surahNum - 1];
+  if (isNaN(ayahNum) || ayahNum < 1 || ayahNum > surahMeta.ayas) {
+    alert(`ভুল আয়াত নম্বর! ${surahMeta.bn} সূরায় মোট ${surahMeta.ayas} টি আয়াত আছে।`);
+    return;
+  }
+
+  openSurah(surahNum, ayahNum);
+}
+
+/* ====================== VERSE OF THE DAY ====================== */
+function renderDailyVerse() {
+  const container = $('#dailyVerseContainer');
+  if (!container) return;
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now - start;
+  const oneDay = 1000 * 60 * 60 * 24;
+  const dayOfYear = Math.floor(diff / oneDay);
+  const index = dayOfYear % CURATED_VERSES.length;
+  const v = CURATED_VERSES[index];
+
+  container.innerHTML = `
+    <div class="daily-verse-card">
+      <div class="daily-verse-title">আজকের আয়াত (Daily Verse)</div>
+      <div class="daily-verse-ar">${v.ar}</div>
+      <div class="daily-verse-bn">${v.bn}</div>
+      <div class="daily-verse-meta">
+        <span class="daily-verse-source" onclick="openSurah(${v.surah}, ${v.ayah})">
+          📖 ${v.surahName} (${v.surah}:${v.ayah})
+        </span>
+        <button class="daily-verse-btn" onclick="openSurah(${v.surah}, ${v.ayah})">সূরা পড়ুন</button>
+      </div>
+    </div>
+  `;
+}
+
 /* ====================== INIT ====================== */
 async function init() {
   // Load page/ruku relations
@@ -533,11 +1056,14 @@ async function init() {
   $('#fontIncModal').addEventListener('click', () => applyFontSize(Math.min(72, arabicFontSize + 2)));
 
   renderSurahList();
+  renderJuzList();
+  renderDailyVerse();
 }
 
 // Expose for onclick
 window.playSurah = playSurah;
 window.closeSurah = closeSurah;
+window.openSurah = openSurah;
 window.toggleSettings = toggleSettings;
 window.closeSettings = closeSettings;
 window.stepRange = stepRange;
@@ -546,6 +1072,11 @@ window.stepAyahRepeat = stepAyahRepeat;
 window.stepSpeed = stepSpeed;
 window.resetDefaults = resetDefaults;
 window.filterSurahs = filterSurahs;
+window.switchHomeTab = switchHomeTab;
+window.jumpToAyah = jumpToAyah;
+window.openJuz = openJuz;
+window.closeJuz = closeJuz;
+window.playJuz = playJuz;
 
 document.addEventListener('DOMContentLoaded', init);
 })();

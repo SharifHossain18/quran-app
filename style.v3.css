@@ -251,10 +251,25 @@ header h1 {
 
 main { padding: 16px; }
 
-.search-container {
-  position: relative;
+.search-row {
+  display: flex;
+  gap: 12px;
   margin-bottom: 20px;
   width: 100%;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+#surahSearchContainer {
+  flex: 3;
+}
+
+#ayahJumpContainer {
+  flex: 2;
+  display: flex;
 }
 
 #surahSearch {
@@ -275,6 +290,41 @@ main { padding: 16px; }
   background: var(--bg-card-hover);
 }
 
+#ayahJumpInput {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  color: var(--color-text-main);
+  font-size: 15px;
+  transition: all 0.25s ease;
+  outline: none;
+}
+
+#ayahJumpInput:focus {
+  border-color: var(--color-gold);
+  background: var(--bg-card-hover);
+}
+
+.jump-btn {
+  background: var(--color-gold);
+  border: 1px solid var(--border-light);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  color: var(--bg-main);
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jump-btn:hover {
+  background: var(--color-gold-light);
+  box-shadow: 0 0 10px var(--color-gold-glow);
+}
+
 .search-container .search-icon {
   position: absolute;
   left: 14px;
@@ -284,6 +334,170 @@ main { padding: 16px; }
   font-size: 16px;
   pointer-events: none;
   opacity: 0.7;
+}
+
+/* Navigation Tabs */
+.home-tabs {
+  display: flex;
+  background: rgba(6, 16, 14, 0.4);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.tab-btn.active {
+  background: var(--bg-card-active);
+  color: var(--color-gold-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(203, 161, 53, 0.2);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Verse of the Day Card */
+.daily-verse-card {
+  background: linear-gradient(135deg, rgba(14, 56, 47, 0.7) 0%, rgba(7, 30, 25, 0.9) 100%);
+  border: 1px solid rgba(203, 161, 53, 0.25);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.daily-verse-card::before {
+  content: '۩';
+  position: absolute;
+  right: 15px;
+  bottom: 0px;
+  font-size: 120px;
+  color: rgba(203, 161, 53, 0.03);
+  font-family: serif;
+  pointer-events: none;
+}
+
+.daily-verse-title {
+  font-size: 12px;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daily-verse-title::before {
+  content: '★';
+  font-size: 10px;
+}
+
+.daily-verse-ar {
+  font-family: 'PDMS_Saleem_QuranFont', 'Traditional Arabic', 'Scheherazade New', serif;
+  font-size: 26px;
+  color: var(--color-white);
+  direction: rtl;
+  text-align: right;
+  line-height: 1.8em;
+  margin: 10px 0 16px 0;
+  word-spacing: 0.05em;
+}
+
+.daily-verse-bn {
+  font-size: 15px;
+  color: #b8d0c3;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.daily-verse-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.daily-verse-source {
+  color: var(--color-gold-light);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.daily-verse-source:hover {
+  color: var(--color-white);
+  text-shadow: 0 0 5px var(--color-gold-glow);
+}
+
+.daily-verse-btn {
+  background: rgba(203, 161, 53, 0.1);
+  border: 1px solid rgba(203, 161, 53, 0.3);
+  color: var(--color-gold-light);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.daily-verse-btn:hover {
+  background: var(--color-gold);
+  color: var(--bg-main);
+  box-shadow: 0 0 8px var(--color-gold-glow);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#juzList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.juz-surah-divider {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(203, 161, 53, 0.08);
+  border: 1px solid rgba(203, 161, 53, 0.15);
+  border-radius: 8px;
+  margin: 20px 0 12px 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.juz-surah-divider-bn {
+  color: var(--color-gold-light);
+}
+
+.juz-surah-divider-ar {
+  font-family: 'PDMS_Saleem_QuranFont', 'Traditional Arabic', serif;
+  font-size: 20px;
+  color: var(--color-white);
+  direction: rtl;
 }
 
 #surahList {
@@ -621,9 +835,8 @@ main { padding: 16px; }
   border-top: 1px solid var(--border-light);
   margin-top: 10px;
 }
-
 @media (max-width: 600px) {
-  #surahList { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  #surahList, #juzList { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   #surahView { padding: 0 8px 15px; }
   #surahView .ayahs-container { padding: 0; margin: 5px 0; }
   header h1 { font-size: 20px; }
@@ -632,5 +845,8 @@ main { padding: 16px; }
   .aya-ar-side { line-height: 1.65em; }
   .ayah-num-circle { width: 24px; height: 24px; font-size: 10px; }
   .aya-bn-line { font-size: 14px; margin-top: 8px; padding-left: 8px; }
+  .search-row { flex-direction: column; gap: 8px; }
+  .daily-verse-card { padding: 14px; margin-bottom: 16px; }
+  .daily-verse-ar { font-size: 20px; line-height: 1.7em; }
+  .daily-verse-bn { font-size: 13px; }
 }
-
