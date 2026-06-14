@@ -258,6 +258,8 @@ function getRukuCount(surah) {
 
 /* ====================== AUDIO ====================== */
 let currentAudio = null;
+let nextAudio = null;
+let nextAudioUrl = null;
 let currentPlayingSurah = null;
 let currentPlayingJuz = null;
 let currentAyahIndex = 0;
@@ -271,6 +273,11 @@ function stopAudio() {
     currentAudio.pause();
     currentAudio = null;
   }
+  if (nextAudio) {
+    nextAudio.pause();
+    nextAudio = null;
+  }
+  nextAudioUrl = null;
   currentPlayingSurah = null;
   currentPlayingJuz = null;
   document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
@@ -311,6 +318,41 @@ function playSurah(surahNum, btn) {
   ayahRepeatCount = 0;
 
   playNextAyah(btn);
+}
+
+async function preloadNextAyah() {
+  const nextIdx = currentAyahIndex + 1;
+  const rangeVal = playbackSettings.range;
+  const maxRangeAyahs = (rangeVal === 'full') ? currentAyahs.length : parseInt(rangeVal);
+
+  if (!currentAyahs || nextIdx >= currentAyahs.length || ayahsPlayedInRange + 1 >= maxRangeAyahs) {
+    nextAudio = null;
+    nextAudioUrl = null;
+    return;
+  }
+
+  const nextAyahData = currentAyahs[nextIdx];
+  const surahNum = (nextAyahData.surah && nextAyahData.surah.number) ? nextAyahData.surah.number : currentPlayingSurah;
+  const sStr = String(surahNum).padStart(3, '0');
+  const aStr = String(nextAyahData.numberInSurah).padStart(3, '0');
+  const audioUrl = `https://www.everyayah.com/data/Alafasy_128kbps/${sStr}${aStr}.mp3`;
+
+  let playUrl = audioUrl;
+  try {
+    const audioCache = await caches.open(AUDIO_CACHE_NAME);
+    const cachedResponse = await audioCache.match(audioUrl);
+    if (cachedResponse) {
+      const blob = await cachedResponse.blob();
+      playUrl = URL.createObjectURL(blob);
+    }
+  } catch(e) {}
+
+  if (nextAudioUrl === playUrl) return; // Already preloaded
+
+  nextAudio = new Audio(playUrl);
+  nextAudio.preload = 'auto';
+  nextAudio.load();
+  nextAudioUrl = playUrl;
 }
 
 async function playNextAyah(btn) {
@@ -357,7 +399,16 @@ async function playNextAyah(btn) {
     }
   } catch(e) { /* fallback to online URL */ }
 
-  currentAudio = new Audio(playUrl);
+  if (nextAudio && nextAudioUrl === playUrl) {
+    currentAudio = nextAudio;
+  } else {
+    currentAudio = new Audio(playUrl);
+  }
+
+  // Clear preloader reference as it is now currentAudio
+  nextAudio = null;
+  nextAudioUrl = null;
+
   currentAudio.playbackRate = parseFloat(playbackSettings.speed);
 
   if (btn) btn.classList.add('playing');
@@ -386,8 +437,11 @@ async function playNextAyah(btn) {
     playNextAyah(btn);
   };
 
-  currentAudio.play().catch((e) => {
+  currentAudio.play().then(() => {
+    preloadNextAyah();
+  }).catch((e) => {
     console.warn("Audio play interrupted or failed", e);
+    preloadNextAyah();
   });
 }
 
