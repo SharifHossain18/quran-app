@@ -281,6 +281,10 @@ function stopAudio() {
   currentPlayingSurah = null;
   currentPlayingJuz = null;
   document.querySelectorAll('#surahView .aya-wrapper.active').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.surah-play-btn, .rnb-play-btn').forEach(btn => btn.classList.remove('playing'));
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = 'none';
+  }
 }
 
 function playSurah(surahNum, btn) {
@@ -289,10 +293,16 @@ function playSurah(surahNum, btn) {
     if (!currentAudio.paused) {
       currentAudio.pause();
       if (btn) btn.classList.remove('playing');
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     } else {
       currentAudio.playbackRate = parseFloat(playbackSettings.speed);
       currentAudio.play().then(() => {
         if (btn) btn.classList.add('playing');
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
       }).catch(() => {});
     }
     return;
@@ -353,6 +363,56 @@ async function preloadNextAyah() {
   nextAudio.preload = 'auto';
   nextAudio.load();
   nextAudioUrl = playUrl;
+}
+
+function updateMediaSession(surahNum, ayahData, btn) {
+  if (!('mediaSession' in navigator)) return;
+
+  const s = SURAH_NAMES[surahNum - 1];
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: `Ayah ${ayahData.numberInSurah} (আয়াত ${toBengaliNum(ayahData.numberInSurah)})`,
+    artist: 'Mishari Rashid Al-Afasy (মিশারি রশিদ)',
+    album: `${s.en} - ${s.bn}`,
+    artwork: [
+      { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }
+    ]
+  });
+
+  navigator.mediaSession.playbackState = 'playing';
+
+  navigator.mediaSession.setActionHandler('play', () => {
+    if (currentAudio) {
+      currentAudio.play().then(() => {
+        navigator.mediaSession.playbackState = 'playing';
+        document.querySelectorAll('.surah-play-btn, .rnb-play-btn').forEach(b => b.classList.add('playing'));
+      }).catch(() => {});
+    }
+  });
+
+  navigator.mediaSession.setActionHandler('pause', () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      navigator.mediaSession.playbackState = 'paused';
+      document.querySelectorAll('.surah-play-btn, .rnb-play-btn').forEach(b => b.classList.remove('playing'));
+    }
+  });
+
+  navigator.mediaSession.setActionHandler('previoustrack', () => {
+    if (currentAyahIndex > 0) {
+      currentAyahIndex--;
+      if (ayahsPlayedInRange > 0) ayahsPlayedInRange--;
+      ayahRepeatCount = 0;
+      playNextAyah(btn);
+    }
+  });
+
+  navigator.mediaSession.setActionHandler('nexttrack', () => {
+    currentAyahIndex++;
+    ayahsPlayedInRange++;
+    ayahRepeatCount = 0;
+    playNextAyah(btn);
+  });
 }
 
 async function playNextAyah(btn) {
@@ -438,6 +498,7 @@ async function playNextAyah(btn) {
   };
 
   currentAudio.play().then(() => {
+    updateMediaSession(surahNum, ayahData, btn);
     preloadNextAyah();
   }).catch((e) => {
     console.warn("Audio play interrupted or failed", e);
@@ -1068,10 +1129,16 @@ function playJuz(juzNum, btn) {
     if (!currentAudio.paused) {
       currentAudio.pause();
       if (btn) btn.classList.remove('playing');
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     } else {
       currentAudio.playbackRate = parseFloat(playbackSettings.speed);
       currentAudio.play().then(() => {
         if (btn) btn.classList.add('playing');
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
       }).catch(() => {});
     }
     return;
